@@ -115,12 +115,17 @@ function loader(promessaPronto) {
   const tc = $("#loaderTc");
   const fim = () => { el.classList.add("is-gone"); document.body.classList.remove("is-loading"); };
 
-  if (reduzMovimento) { promessaPronto.then(fim); return promessaPronto; }
+  const liberar = promessaPronto.catch((erro) => {
+    console.warn("Carregamento parcial liberado:", erro);
+  });
+
+  if (reduzMovimento) { liberar.then(fim); return liberar; }
 
   return new Promise((ok) => {
     let alvo = 0, atual = 0, pronto = false;
     const t0 = performance.now();
-    promessaPronto.then(() => { pronto = true; });
+    liberar.then(() => { pronto = true; });
+    setTimeout(() => { pronto = true; }, 7000);
     const tick = (t) => {
       const passado = (t - t0) / 1000;
       // sobe sozinho até 85%, completa quando tudo carregou (mínimo 1,6s)
@@ -1017,7 +1022,7 @@ function loopPrincipal() {
     renderInicio();
     montarCatalogo();
     if (window.motionScan) motionScan();
-    await document.fonts.ready;
+    await Promise.race([document.fonts.ready, new Promise((ok) => setTimeout(ok, 2500))]);
     renderLetreiro();
     prepararContato();
     // A navegação é controlada pelas telas.
