@@ -987,7 +987,7 @@ body[data-tela="topo"]:not(.is-scrolled) .nav::after { opacity: 0; }
 .contact {
   position: relative; overflow: hidden; isolation: isolate;
   min-height: 100vh;
-  padding: calc(var(--nav-h) + clamp(3rem, 8vw, 6rem)) var(--pad) clamp(5rem, 10vw, 8rem);
+  padding: calc(var(--nav-h) + clamp(2.5rem, 6vw, 5rem)) var(--pad) clamp(4rem, 8vw, 7rem);
   background: var(--red); color: var(--black);
   display: grid; align-items: center;
 }
@@ -1015,9 +1015,9 @@ body[data-tela="topo"]:not(.is-scrolled) .nav::after { opacity: 0; }
 }
 .contact-title {
   font-family: var(--display); font-weight: 400;
-  font-size: clamp(5.2rem, 15.5vw, 16rem); line-height: 1.04;
+  font-size: clamp(5rem, 11.5vw, 13rem); line-height: 1.12;
   margin: 0; user-select: none;
-  max-width: 8ch;
+  max-width: 7.6ch;
 }
 .contact-title .line { display: block; white-space: nowrap; }
 .contact-title .ch {
@@ -1070,14 +1070,16 @@ body[data-tela="topo"]:not(.is-scrolled) .nav::after { opacity: 0; }
 .contact-empty { font-weight: 700; padding: 1rem 1.25rem; border: 2px dashed var(--black); border-radius: 999px; }
 .contact-grid {
   width: 100%; max-width: 1520px; margin: 0 auto;
-  display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(20rem, .72fr);
-  gap: clamp(2rem, 5vw, 6rem); align-items: center;
+  display: grid; grid-template-columns: minmax(28rem, .9fr) minmax(22rem, 32rem);
+  gap: clamp(3rem, 8vw, 9rem); align-items: center;
 }
+.contact-copy { min-width: 0; }
 .contact-card-panel {
-  justify-self: end; width: min(100%, 34rem);
+  justify-self: end; width: min(100%, 32rem);
   padding: clamp(1rem, 2vw, 1.4rem);
   border-radius: 18px;
-  background: rgba(255, 42, 31, .08);
+  background: rgba(0, 0, 0, .08);
+  transform: translateX(clamp(0px, 2vw, 24px));
 }
 .contact-label { margin-bottom: 1rem; font-size: .8rem; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; }
 
