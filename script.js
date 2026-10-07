@@ -16,15 +16,20 @@ const estado = { perfil: {}, ids: [], clientes: [], edicoes: [], filtro: "todos"
 window.estado = estado;
 
 /* ---------- Funções chamadas pelos arquivos info.js ---------- */
-let contexto = null;
+// Os info.js carregam em paralelo; cada um descobre a quem pertence
+// pelo próprio endereço (document.currentScript), não pela ordem.
+const contextoDoScript = new Map();
+const contextoAtual = () => contextoDoScript.get(document.currentScript && document.currentScript.src);
 window.perfil = (d) => { estado.perfil = d || {}; };
 window.listaClientes = (ids) => { estado.ids = Array.isArray(ids) ? ids : []; };
 window.cliente = (d = {}) => {
+  const ctx = contextoAtual();
+  if (!ctx) return;
   const { edicoes, ...resto } = d;
-  Object.assign(contexto, resto);
-  contexto.listaEdicoes = Array.isArray(edicoes) ? edicoes : [];
+  Object.assign(ctx, resto);
+  ctx.listaEdicoes = Array.isArray(edicoes) ? edicoes : [];
 };
-window.edicao = (d = {}) => { Object.assign(contexto, d); };
+window.edicao = (d = {}) => { const ctx = contextoAtual(); if (ctx) Object.assign(ctx, d); };
 
 /* ---------- Utilidades ---------- */
 const $ = (s, el = document) => el.querySelector(s);
@@ -42,10 +47,11 @@ function timecode(seg) {
 }
 const duracaoCurta = (seg) => `${Math.floor(seg / 60)}:${pad(Math.round(seg % 60))}`;
 
-function carregarScript(src) {
+function carregarScript(src, ctx) {
   return new Promise((ok, falha) => {
     const s = document.createElement("script");
     s.src = src;
+    if (ctx) contextoDoScript.set(s.src, ctx);
     s.onload = ok;
     s.onerror = () => falha(src);
     document.head.appendChild(s);
@@ -72,36 +78,43 @@ function avatarHTML(c) {
 }
 
 /* ---------- Leitura das pastas ---------- */
+/* Três rodadas em paralelo (perfil + lista → coleções → edições) em vez de
+   ~50 downloads em fila: numa internet comum isso cai de ~9 s para ~1 s.
+   A ordem do site continua a das listas, não a de chegada dos arquivos. */
 async function carregarTudo() {
-  try { await carregarScript("perfil.js"); } catch (_) { /* opcional */ }
-  try {
-    await carregarScript("clientes/lista.js");
-  } catch (_) {
+  const [, listaOk] = await Promise.all([
+    carregarScript("perfil.js").catch(() => { /* opcional */ }),
+    carregarScript("clientes/lista.js").then(() => true, () => false)
+  ]);
+  if (!listaOk) {
     mostrarErro("Não encontrei <code>clientes/lista.js</code>. Ele precisa existir e listar as pastas dos clientes.");
     return;
   }
-  for (const id of estado.ids) {
-    const c = { id, nome: id, pasta: `clientes/${id}/`, edicoes: [] };
-    contexto = c;
-    try { await carregarScript(c.pasta + "info.js"); } catch (src) {
-      errosLeitura.push(`Não encontrei <code>${esc(src)}</code>. Crie o arquivo ou remova "${esc(id)}" de <code>clientes/lista.js</code>.`);
-      continue;
-    }
-    for (const edId of c.listaEdicoes || []) {
-      const ed = { id: edId, titulo: edId, cliente: c, pasta: `${c.pasta}edicoes/${edId}/`, tags: [], duracaoSeg: 0 };
-      contexto = ed;
-      try { await carregarScript(ed.pasta + "info.js"); } catch (src) {
-        errosLeitura.push(`Não encontrei <code>${esc(src)}</code>.`);
-        continue;
-      }
-      ed.youtubeId = /^[A-Za-z0-9_-]{11}$/.test(ed.youtube || "") ? ed.youtube : "";
-      ed.video = ed.youtubeId ? "" : ed.pasta + (ed.arquivoVideo || "video.mp4");
-      ed.capa = ed.youtubeId ? `https://i.ytimg.com/vi/${ed.youtubeId}/hqdefault.jpg` : ed.pasta + (ed.arquivoCapa || "preview.jpg");
-      c.edicoes.push(ed);
-      estado.edicoes.push(ed);
-    }
-    estado.clientes.push(c);
-  }
+
+  const clientes = estado.ids.map((id) => ({ id, nome: id, pasta: `clientes/${id}/`, edicoes: [] }));
+  const clientesOk = await Promise.all(clientes.map((c) => carregarScript(c.pasta + "info.js", c).then(() => true, (src) => {
+    errosLeitura.push(`Não encontrei <code>${esc(src)}</code>. Crie o arquivo ou remova "${esc(c.id)}" de <code>clientes/lista.js</code>.`);
+    return false;
+  })));
+  const validos = clientes.filter((_, k) => clientesOk[k]);
+
+  const edicoes = validos.flatMap((c) => (c.listaEdicoes || []).map((edId) => (
+    { id: edId, titulo: edId, cliente: c, pasta: `${c.pasta}edicoes/${edId}/`, tags: [], duracaoSeg: 0 }
+  )));
+  const edicoesOk = await Promise.all(edicoes.map((ed) => carregarScript(ed.pasta + "info.js", ed).then(() => true, (src) => {
+    errosLeitura.push(`Não encontrei <code>${esc(src)}</code>.`);
+    return false;
+  })));
+
+  edicoes.forEach((ed, k) => {
+    if (!edicoesOk[k]) return;
+    ed.youtubeId = /^[A-Za-z0-9_-]{11}$/.test(ed.youtube || "") ? ed.youtube : "";
+    ed.video = ed.youtubeId ? "" : ed.pasta + (ed.arquivoVideo || "video.mp4");
+    ed.capa = ed.youtubeId ? `https://i.ytimg.com/vi/${ed.youtubeId}/hqdefault.jpg` : ed.pasta + (ed.arquivoCapa || "preview.jpg");
+    ed.cliente.edicoes.push(ed);
+    estado.edicoes.push(ed);
+  });
+  validos.forEach((c) => estado.clientes.push(c));
   if (errosLeitura.length) mostrarErro(errosLeitura.join("<br>"));
 }
 
@@ -129,7 +142,7 @@ function loader(promessaPronto) {
     let alvo = 0, atual = 0, pronto = false;
     const t0 = performance.now();
     liberar.then(() => { pronto = true; });
-    setTimeout(() => { pronto = true; }, 7000);
+    setTimeout(() => { pronto = true; }, 12000);
     const tick = (t) => {
       const passado = (t - t0) / 1000;
       // sobe sozinho até 85%, completa quando tudo carregou (mínimo 1,6s)
