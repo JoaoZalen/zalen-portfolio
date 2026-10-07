@@ -1001,20 +1001,20 @@ body[data-tela="topo"]:not(.is-scrolled) .nav::after { opacity: 0; }
   min-width: 115%; min-height: 115%; width: auto; height: auto;
   transform: translate(-50%, -50%) scale(1.08);
   object-fit: cover;
-  filter: blur(24px) grayscale(1) contrast(1.45) saturate(.55);
-  opacity: .42;
+  filter: blur(20px) grayscale(.75) contrast(1.35) saturate(.75);
+  opacity: .62;
 }
 .contact-bg::after {
   content: ""; position: absolute; inset: 0;
   background:
-    linear-gradient(90deg, rgba(255, 42, 31, .92), rgba(255, 42, 31, .7)),
-    radial-gradient(circle at 18% 88%, rgba(0, 0, 0, .42), transparent 34%),
-    radial-gradient(circle at 78% 18%, rgba(0, 0, 0, .35), transparent 40%);
+    linear-gradient(90deg, rgba(255, 42, 31, .78), rgba(255, 42, 31, .58)),
+    radial-gradient(circle at 18% 88%, rgba(0, 0, 0, .34), transparent 34%),
+    radial-gradient(circle at 78% 18%, rgba(0, 0, 0, .28), transparent 40%);
   mix-blend-mode: multiply;
 }
 .contact-title {
   font-family: var(--display); font-weight: 400;
-  font-size: clamp(5.2rem, 15.5vw, 16rem); line-height: .94;
+  font-size: clamp(5.2rem, 15.5vw, 16rem); line-height: 1.04;
   margin: 0; user-select: none;
   max-width: 8ch;
 }
@@ -1049,7 +1049,18 @@ body[data-tela="topo"]:not(.is-scrolled) .nav::after { opacity: 0; }
 
 /* na tela Contato (fundo vermelho): cartões pretos */
 .contact-links { list-style: none; display: grid; grid-template-columns: 1fr; gap: .9rem; }
-.contact-links .ci { padding: .95rem 1rem; border-radius: 14px; background: rgba(0, 0, 0, .9); color: var(--paper); box-shadow: 0 18px 44px -26px rgba(0, 0, 0, .85); backdrop-filter: blur(12px); }
+.contact-links .ci {
+  padding: .95rem 1rem; border-radius: 14px; background: rgba(0, 0, 0, .9); color: var(--paper);
+  box-shadow: 0 18px 44px -26px rgba(0, 0, 0, .85); backdrop-filter: blur(12px);
+  animation: contactCardFloat 4.8s ease-in-out infinite alternate;
+  animation-delay: calc(var(--float-i, 0) * -.45s);
+}
+.contact-links .contact-item:nth-child(1) { --float-i: 1; }
+.contact-links .contact-item:nth-child(2) { --float-i: 2; }
+.contact-links .contact-item:nth-child(3) { --float-i: 3; }
+.contact-links .contact-item:nth-child(4) { --float-i: 4; }
+.contact-links .contact-item:nth-child(5) { --float-i: 5; }
+.contact-links .contact-item:nth-child(6) { --float-i: 6; }
 .contact-links .ci-icon { background: var(--red); color: var(--black); }
 .contact-links .ci-action { border: 1px solid var(--line-strong); }
 .contact-links .ci:hover, .contact-links .ci:focus-visible { background: var(--paper); color: var(--black); transform: translateY(-3px); box-shadow: 0 16px 30px -14px rgba(0, 0, 0, .6); }
@@ -1076,20 +1087,21 @@ body[data-tela="topo"]:not(.is-scrolled) .nav::after { opacity: 0; }
   animation: float var(--t, 14s) ease-in-out infinite alternate;
 }
 .contact-balls i {
-  bottom: -14vw;
+  bottom: -8vw;
   animation-name: particleRise;
   animation-timing-function: linear;
   animation-iteration-count: infinite;
   animation-direction: normal;
+  box-shadow: 0 0 34px rgba(0, 0, 0, .12);
 }
-.contact-balls i:nth-child(1) { width: 26vw; height: 26vw; right: -7vw; --x: -3vw; --r: 18deg; --t: 22s; }
-.contact-balls i:nth-child(2) { width: 9vw; height: 9vw; right: 25%; background: var(--paper); --x: 4vw; --r: -28deg; --t: 14s; animation-delay: -5s; }
-.contact-balls i:nth-child(3) { width: 4vw; height: 4vw; left: 46%; --x: -2vw; --r: 36deg; --t: 12s; animation-delay: -9s; }
-.contact-balls i:nth-child(4) { width: 2.2vw; height: 2.2vw; left: 14%; background: var(--paper); --x: 5vw; --r: -18deg; --t: 10s; animation-delay: -4s; }
-.contact-balls i:nth-child(5) { width: 6vw; height: 6vw; right: 9%; --x: -5vw; --r: 22deg; --t: 16s; animation-delay: -11s; }
-.contact-balls i:nth-child(6) { width: 1.5vw; height: 1.5vw; left: 58%; background: var(--paper); --x: 2vw; --r: -42deg; --t: 9s; animation-delay: -2s; }
-.contact-balls i:nth-child(7) { width: 3vw; height: 3vw; left: 34%; --x: -4vw; --r: 16deg; --t: 13s; animation-delay: -7s; }
-.contact-balls i:nth-child(8) { width: 11vw; height: 11vw; right: 40%; background: var(--paper); opacity: .75; --x: 3vw; --r: -24deg; --t: 19s; animation-delay: -13s; }
+.contact-balls i:nth-child(1) { width: 8vw; height: 8vw; right: 4%; --x: -5vw; --r: 18deg; --t: 13s; }
+.contact-balls i:nth-child(2) { width: 6vw; height: 6vw; right: 25%; background: var(--paper); --x: 4vw; --r: -28deg; --t: 10s; animation-delay: -5s; }
+.contact-balls i:nth-child(3) { width: 3vw; height: 3vw; left: 46%; --x: -2vw; --r: 36deg; --t: 8s; animation-delay: -7s; }
+.contact-balls i:nth-child(4) { width: 2vw; height: 2vw; left: 14%; background: var(--paper); --x: 5vw; --r: -18deg; --t: 7s; animation-delay: -4s; }
+.contact-balls i:nth-child(5) { width: 5vw; height: 5vw; right: 9%; --x: -5vw; --r: 22deg; --t: 11s; animation-delay: -8s; }
+.contact-balls i:nth-child(6) { width: 1.5vw; height: 1.5vw; left: 58%; background: var(--paper); --x: 2vw; --r: -42deg; --t: 6.5s; animation-delay: -2s; }
+.contact-balls i:nth-child(7) { width: 2.6vw; height: 2.6vw; left: 34%; --x: -4vw; --r: 16deg; --t: 9s; animation-delay: -6s; }
+.contact-balls i:nth-child(8) { width: 7vw; height: 7vw; right: 40%; background: var(--paper); opacity: .75; --x: 3vw; --r: -24deg; --t: 12s; animation-delay: -9s; }
 .cta-balls i:nth-child(1) { width: 26vw; height: 26vw; right: -7vw; top: -8vw; --t: 16s; }
 .cta-balls i:nth-child(2) { width: 9vw; height: 9vw; right: 18%; bottom: 12%; background: var(--paper); --t: 11s; }
 .cta-balls i:nth-child(3) { width: 4vw; height: 4vw; left: 46%; top: 14%; --t: 9s; }
@@ -1105,6 +1117,10 @@ body[data-tela="topo"]:not(.is-scrolled) .nav::after { opacity: 0; }
   12% { opacity: .9; }
   82% { opacity: .72; }
   100% { transform: translate3d(var(--x, 0), -118vh, 0) rotate(var(--r, 20deg)) scale(1.08); opacity: 0; }
+}
+@keyframes contactCardFloat {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(0, -10px, 0); }
 }
 
 /* =========================================================
