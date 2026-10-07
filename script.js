@@ -113,7 +113,11 @@ function loader(promessaPronto) {
   const num = $("#loaderNum");
   const bar = $("#loaderBar");
   const tc = $("#loaderTc");
-  const fim = () => { el.classList.add("is-gone"); document.body.classList.remove("is-loading"); };
+  const fim = () => {
+    clearTimeout(window.__zalenLoaderFailsafe);
+    el.classList.add("is-gone");
+    document.body.classList.remove("is-loading");
+  };
 
   const liberar = promessaPronto.catch((erro) => {
     console.warn("Carregamento parcial liberado:", erro);
