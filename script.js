@@ -241,7 +241,7 @@ function renderPerfil() {
   ].filter(Boolean);
   const html = links.length
     ? links.map((l) => `<li><a href="${esc(l.url)}" data-magnet ${l.url.startsWith("mailto:") ? "" : 'target="_blank" rel="noopener"'}>${esc(l.rotulo)}</a></li>`).join("")
-    : `<li class="contact-empty">Adicione seus contatos em perfil.js para eles aparecerem aqui.</li>`;
+    : `<li class="contact-empty">Contatos em breve</li>`;
   $$("[data-contact-links]").forEach((ul) => { ul.innerHTML = html; });
   // o botão do rodapé vai direto para o primeiro contato (e-mail ou WhatsApp)
   const direto = links[0];
@@ -267,10 +267,10 @@ function renderInicio() {
   // números reais: nada inventado, só contagem das edições cadastradas
   const conta = (tipo) => estado.edicoes.filter((e) => e.tipo === tipo).length;
   const numeros = [
-    { n: estado.edicoes.length, rotulo: "edições publicadas" },
-    { n: conta("Comissão"), rotulo: "comissões entregues" },
+    { n: estado.edicoes.length, rotulo: "edições" },
+    { n: conta("Comissão"), rotulo: "comissões" },
     { n: conta("Reedit"), rotulo: "reedits" },
-    { n: conta("Projeto"), rotulo: "projetos e colaborações" }
+    { n: conta("Projeto"), rotulo: "colaborações" }
   ].filter((s) => s.n > 0);
   $("#impactGrid").innerHTML = numeros.map((s, k) => `
     <div class="impact-card" data-reveal style="--d:${k * 90}ms">
@@ -289,7 +289,7 @@ function renderInicio() {
       <span class="service-num">${pad(k + 1)}</span>
       <h3>${esc(s.titulo || "")}</h3>
       <p>${esc(s.texto || "")}</p>
-      ${col ? `<button class="service-link" data-collection="${esc(col.id)}">Ver exemplos <small>${col.edicoes.length}</small><b aria-hidden="true">→</b></button>` : ""}
+      ${col ? `<button class="service-link" data-collection="${esc(col.id)}">Exemplos <small>${col.edicoes.length}</small><b aria-hidden="true">→</b></button>` : ""}
     </article>`;
   }).join("");
   $("#servicesGrid").onclick = (e) => {
@@ -452,7 +452,7 @@ function renderPaineis() {
             <div class="tl-ruler"></div>
             <div class="tl-track"><i class="tl-fill"></i></div>
             <div class="tl-head"><b>00:00:00:00</b></div>
-            <span class="tl-hint">Passe ou arraste ↔</span>
+            <span class="tl-hint">Arraste ↔</span>
           </div>
         </div>
         <div class="panel-info">
@@ -674,10 +674,10 @@ function renderLetreiro() {
   const track = $("#marqueeTrack");
   if (!estado.clientes.length) {
     track.innerHTML = `<span class="mq-item">EM BREVE</span>`;
-    $("#clientsHint").textContent = "Nenhum cliente ainda. Crie uma pasta em /clientes e adicione o nome em clientes/lista.js.";
+    $("#clientsHint").hidden = false;
+    $("#clientsHint").textContent = "Nenhuma coleção ainda.";
     return;
   }
-  if (estado.clientes.length < 2) $("#clientsHint").textContent = "Clique no cliente para ver os trabalhos.";
 
   const bloco = estado.clientes.map((c) => {
     const n = c.edicoes.length;

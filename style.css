@@ -431,7 +431,6 @@ body[data-tela="topo"]:not(.is-scrolled) .nav::after { opacity: 0; }
    ========================================================= */
 .works { position: relative; padding-top: calc(var(--nav-h) + clamp(3rem, 7vw, 6rem)); background: var(--black); }
 .works .mega-title { margin-top: .6rem; }
-.works-lead { max-width: 46ch; margin-top: 1.2rem; color: var(--muted); }
 .works-head {
   display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem 3rem;
   padding: 0 var(--pad) clamp(2rem, 5vw, 4rem);
@@ -885,7 +884,7 @@ body[data-tela="topo"]:not(.is-scrolled) .nav::after { opacity: 0; }
   background: var(--red); color: var(--black); text-align: center;
 }
 .cta-kicker { font-weight: 800; font-size: clamp(1.1rem, 2vw, 1.5rem); }
-.cta-title { margin: 1rem auto 2.5rem; max-width: 12ch; font-family: var(--display); font-weight: 400; text-transform: uppercase; font-size: clamp(3.5rem, 11vw, 11rem); line-height: .86; }
+.cta-title { margin: 1rem auto 2.5rem; max-width: 12ch; font-family: var(--display); font-weight: 400; text-transform: uppercase; font-size: clamp(3.5rem, 11vw, 11rem); line-height: 1; }
 .cta-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 1rem; }
 
 /* =========================================================
@@ -899,7 +898,7 @@ body[data-tela="topo"]:not(.is-scrolled) .nav::after { opacity: 0; }
 }
 .js-motion [data-reveal].is-in { opacity: 1; translate: none; filter: none; }
 /* folga em cima e embaixo para acentos e cedilha não serem cortados pela máscara */
-[data-split] .w { display: inline-block; overflow: hidden; vertical-align: top; padding: .16em .02em .12em; margin: -.16em -.02em -.12em; }
+[data-split] .w { display: inline-block; overflow: hidden; vertical-align: top; padding: .26em .02em .12em; margin: -.26em -.02em -.12em; }
 [data-split] .w > span { display: inline-block; }
 .js-motion [data-split] .w > span { translate: 0 110%; transition: translate 1s var(--ease) calc(var(--i, 0) * 55ms); }
 .js-motion [data-split].is-in .w > span { translate: none; }
@@ -996,7 +995,6 @@ body[data-tela="topo"]:not(.is-scrolled) .nav::after { opacity: 0; }
   background-size: cover; background-position: center;
   filter: grayscale(1) contrast(1.4); mix-blend-mode: multiply; opacity: .35;
 }
-.contact-kicker { font-weight: 800; font-size: clamp(1.1rem, 2vw, 1.5rem); }
 .contact-title {
   font-family: var(--display); font-weight: 400;
   font-size: clamp(6rem, 22vw, 22rem); line-height: .8;
@@ -1093,17 +1091,14 @@ body[data-tela="topo"]:not(.is-scrolled) .nav::after { opacity: 0; }
 .is-catalog .site-footer { margin-left: 230px; }
 
 /* =========================================================
-   TRANSIÇÃO · bolas + íris
+   TRANSIÇÃO · bolas → palavra cinética → persianas
    ========================================================= */
-@property --hole { syntax: "<length>"; inherits: false; initial-value: 0px; }
 @property --bh { syntax: "<length>"; inherits: true; initial-value: 0px; }
 .wipe {
   position: fixed; inset: 0; z-index: 245;
   width: 100%; height: 100%; max-width: none; max-height: none;
   margin: 0; padding: 0; border: 0; background: transparent; color: var(--paper);
   overflow: hidden; pointer-events: none; visibility: hidden;
-  -webkit-mask: radial-gradient(circle at 50% 50%, transparent var(--hole), #000 calc(var(--hole) + 1px));
-  mask: radial-gradient(circle at 50% 50%, transparent var(--hole), #000 calc(var(--hole) + 1px));
 }
 .wipe::backdrop { background: transparent; }
 .wipe.is-on { visibility: visible; pointer-events: auto; cursor: wait; }
@@ -1116,18 +1111,30 @@ body[data-tela="topo"]:not(.is-scrolled) .nav::after { opacity: 0; }
 .wipe-ball--paper { background: var(--paper); }
 .wipe-ball--black { background: var(--black); }
 .wipe-spark { position: absolute; border-radius: 50%; transform: translate(-50%, -50%) scale(0); z-index: 2; }
+/* persianas: assumem o lugar da bola preta e saem em direções alternadas */
+.wipe-stripes { position: absolute; inset: 0; z-index: 1; display: flex; visibility: hidden; }
+.wipe.is-covered .wipe-stripes { visibility: visible; }
+.wipe.is-covered .wipe-ball { visibility: hidden; }
+.wipe-col { position: relative; flex: 1; }
+.wipe-col i { position: absolute; inset: 0 -1px; will-change: transform; }
+.wipe-col-red { background: var(--red); }
+.wipe-col-black { background: var(--black); }
 .wipe-label {
   position: absolute; inset: 0; z-index: 3;
-  display: grid; place-content: center; justify-items: center; gap: .6rem;
-  opacity: 0; text-align: center;
+  display: grid; place-content: center; justify-items: center; gap: 1.1rem;
+  opacity: 0; text-align: center; pointer-events: none;
 }
-.wipe-name { display: block; font-family: var(--display); font-size: clamp(5rem, 20vw, 17rem); line-height: .82; color: var(--paper); }
-.wipe-dest {
-  display: inline-flex; align-items: center; gap: .7rem;
-  font-family: var(--display); font-size: clamp(1rem, 2vw, 1.6rem); letter-spacing: .3em; text-transform: uppercase; color: var(--red);
+.wipe-meta {
+  display: inline-flex; align-items: center; gap: 1.2rem;
+  font-size: .78rem; font-weight: 800; letter-spacing: .3em; color: var(--muted); font-variant-numeric: tabular-nums;
 }
-.wipe-dest:empty { display: none; }
-.wipe-dest::before { content: ""; width: .55rem; height: .55rem; border-radius: 50%; background: var(--red); animation: blink 1s steps(2) infinite; }
+.wipe-meta b { font-family: var(--display); font-weight: 400; font-size: 1.1rem; letter-spacing: .08em; color: var(--red); }
+.wipe-word {
+  display: flex; overflow: hidden; padding: .14em .06em 0;
+  font-family: var(--display); font-size: clamp(4rem, 15vw, 15rem); line-height: .9; color: var(--paper);
+}
+.wipe-letter { display: inline-block; will-change: transform; }
+.wipe-line { display: block; width: min(60vw, 40rem); height: 4px; background: var(--red); box-shadow: 0 0 16px var(--red); transform: scaleX(0); }
 
 /* =========================================================
    PLAYER
@@ -1273,7 +1280,6 @@ body[data-tela="topo"]:not(.is-scrolled) .nav::after { opacity: 0; }
   .nav { gap: .8rem; }
   .nav-logo { font-size: 1.4rem; }
   .nav-cta { padding: .5rem .8rem; font-size: .85rem; }
-  .nav-cta-long { display: none; }
   .player-brand { font-size: 1.3rem; }
   .player-count { font-size: 1rem; }
   .player-foot .btn-mega { width: 100%; text-align: center; }

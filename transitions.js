@@ -1,24 +1,33 @@
 /* =========================================================
    TRANSIÇÕES · motion design entre telas
-   1. Três bolas (vermelha, papel, preta) crescem a partir do clique
-      e cobrem a tela, com faíscas saindo do ponto.
-   2. O nome aparece no meio com o destino embaixo.
-   3. A tela troca por baixo e uma íris abre do centro revelando.
+   1. Três bolas (vermelha, papel, preta) explodem a partir do clique,
+      com faíscas saindo do ponto.
+   2. O nome da tela de destino entra letra por letra com quique,
+      enquanto uma linha de "render" corre por baixo.
+   3. A tela troca por baixo e persianas pretas e vermelhas saem em
+      direções alternadas, revelando a nova tela.
    ========================================================= */
 (function () {
   const wipe = document.getElementById("wipe");
   if (!wipe || !wipe.animate) return;
-  const destino = document.getElementById("wipeDest");
+  const palavra = document.getElementById("wipeDest");
+  const indice = document.getElementById("wipeIndex");
+  const listras = document.getElementById("wipeStripes");
   const rotulo = wipe.querySelector(".wipe-label");
-  const nome = wipe.querySelector(".wipe-name");
+  const meta = wipe.querySelector(".wipe-meta");
+  const linha = wipe.querySelector(".wipe-line");
   const bolas = [...wipe.querySelectorAll(".wipe-ball")];
   const reduz = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const EASE = "cubic-bezier(.76, 0, .24, 1)";
+  const SAIDA = "cubic-bezier(.22, 1, .36, 1)";
+  const QUIQUE = "cubic-bezier(.34, 1.56, .64, 1)";
   const NOMES = { topo: "Início", trabalhos: "Trabalhos", catalogo: "Catálogo", clientes: "Coleções", contato: "Contato" };
+  const ORDEM = Object.keys(NOMES);
   let rodando = false;
 
   const esperar = (ms) => new Promise((ok) => setTimeout(ok, ms));
   const raioAte = (x, y) => Math.ceil(Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y))) + 4;
+  const pad = (n) => String(n).padStart(2, "0");
 
   function pontoDo(evento) {
     // clique real usa o ponteiro; Enter no teclado usa o centro do elemento
@@ -45,23 +54,39 @@
           { transform: `translate(calc(-50% + ${Math.cos(ang) * dist * .7}px), calc(-50% + ${Math.sin(ang) * dist * .7}px)) scale(1.2)`, offset: .55 },
           { transform: `translate(calc(-50% + ${Math.cos(ang) * dist}px), calc(-50% + ${Math.sin(ang) * dist}px)) scale(0)` }
         ],
-        { duration: 650 + Math.random() * 300, delay: Math.random() * 120, easing: "cubic-bezier(.22, 1, .36, 1)" }
+        { duration: 600 + Math.random() * 250, delay: Math.random() * 100, easing: SAIDA }
       ).finished.then(() => s.remove(), () => s.remove());
     }
   }
 
-  async function cobrir(x, y, texto) {
+  // persianas: cada coluna tem uma faixa vermelha embaixo e uma preta em cima
+  function montarListras() {
+    const n = innerWidth < 700 ? 4 : 7;
+    if (listras.childElementCount === n) return;
+    listras.innerHTML = Array.from({ length: n }, () => `<div class="wipe-col"><i class="wipe-col-red"></i><i class="wipe-col-black"></i></div>`).join("");
+  }
+
+  function escreverPalavra(texto) {
+    palavra.setAttribute("aria-label", texto);
+    palavra.innerHTML = [...texto.toUpperCase()].map((l) => `<span class="wipe-letter">${l === " " ? "&nbsp;" : l}</span>`).join("");
+    return [...palavra.querySelectorAll(".wipe-letter")];
+  }
+
+  async function cobrir(x, y, hash) {
     const r = raioAte(x, y);
+    const tela = hash.slice(1);
     wipe.style.setProperty("--x", `${x}px`);
     wipe.style.setProperty("--y", `${y}px`);
     wipe.style.setProperty("--r", `${r}px`);
-    destino.textContent = texto;
+    const letras = escreverPalavra(NOMES[tela] || "");
+    indice.textContent = ORDEM.includes(tela) ? `${pad(ORDEM.indexOf(tela) + 1)} / ${pad(ORDEM.length)}` : "";
+    montarListras();
     // popover = top layer: a transição fica acima até do player aberto
     if (wipe.showPopover) { try { wipe.showPopover(); } catch (_) {} }
     wipe.classList.add("is-on");
 
     if (reduz) {
-      bolas[2].style.transform = "translate(-50%, -50%) scale(1)";
+      wipe.classList.add("is-covered");
       rotulo.style.opacity = 1;
       await wipe.animate({ opacity: [0, 1] }, { duration: 180, fill: "forwards" }).finished;
       return;
@@ -70,22 +95,31 @@
     faiscas(x, y);
     const anims = bolas.map((b, k) => b.animate(
       [{ transform: "translate(-50%, -50%) scale(0)" }, { transform: "translate(-50%, -50%) scale(1)" }],
-      { duration: 640, delay: k * 95, easing: EASE, fill: "forwards" }
+      { duration: 520, delay: k * 75, easing: EASE, fill: "forwards" }
     ));
-    // o nome sobe "de dentro" da bola preta, letra por letra
-    rotulo.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, delay: 560, fill: "forwards" });
-    nome.animate(
+
+    // letras caem de baixo, girando, com quique; cada uma um pouco depois
+    rotulo.style.opacity = 1;
+    const inicio = 380;
+    letras.forEach((l, k) => l.animate(
       [
-        { transform: "translateY(60%) scale(.9)", letterSpacing: ".25em", filter: "blur(10px)" },
-        { transform: "translateY(0) scale(1)", letterSpacing: "0em", filter: "blur(0)" }
+        { transform: "translateY(115%) rotate(12deg) scale(.6)", opacity: 0 },
+        { transform: "translateY(0) rotate(0) scale(1)", opacity: 1 }
       ],
-      { duration: 620, delay: 560, easing: "cubic-bezier(.22, 1, .36, 1)", fill: "forwards" }
+      { duration: 620, delay: inicio + k * 38, easing: QUIQUE, fill: "both" }
+    ));
+    meta.animate(
+      [{ transform: "translateY(-12px)", opacity: 0 }, { transform: "none", opacity: 1 }],
+      { duration: 420, delay: inicio + 80, easing: SAIDA, fill: "both" }
     );
-    destino.animate(
-      [{ transform: "translateY(120%)", opacity: 0 }, { transform: "translateY(0)", opacity: 1 }],
-      { duration: 500, delay: 720, easing: "cubic-bezier(.22, 1, .36, 1)", fill: "forwards" }
+    // linha de "render" correndo por baixo da palavra
+    linha.animate(
+      [{ transform: "scaleX(0)", transformOrigin: "left" }, { transform: "scaleX(1)", transformOrigin: "left" }],
+      { duration: 700, delay: inicio + 120, easing: EASE, fill: "both" }
     );
     await anims[anims.length - 1].finished;
+    // a bola preta já cobre tudo: troca pelas persianas (mesma cor, sem emenda)
+    wipe.classList.add("is-covered");
   }
 
   async function revelar() {
@@ -93,21 +127,42 @@
       await wipe.animate({ opacity: [1, 0] }, { duration: 200, fill: "forwards" }).finished;
       return;
     }
-    rotulo.animate(
-      [{ transform: "scale(1)", opacity: 1 }, { transform: "scale(1.15)", opacity: 0 }],
-      { duration: 380, easing: "cubic-bezier(.55, 0, 1, .45)", fill: "forwards" }
+    const letras = [...palavra.querySelectorAll(".wipe-letter")];
+    // a palavra sai para cima, letra por letra, com um leve skew
+    letras.forEach((l, k) => l.animate(
+      [{ transform: "translateY(0) skewY(0)", opacity: 1 }, { transform: "translateY(-120%) skewY(-8deg)", opacity: 0 }],
+      { duration: 420, delay: k * 22, easing: "cubic-bezier(.55, 0, 1, .45)", fill: "forwards" }
+    ));
+    meta.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 250, fill: "forwards" });
+    linha.animate(
+      [{ transform: "scaleX(1)", transformOrigin: "right" }, { transform: "scaleX(0)", transformOrigin: "right" }],
+      { duration: 400, easing: EASE, fill: "forwards" }
     );
-    await esperar(160);
-    // íris: um buraco abre do centro da tela até cobrir tudo
-    const r = raioAte(innerWidth / 2, innerHeight / 2);
-    await wipe.animate({ "--hole": ["0px", `${r}px`] }, { duration: 700, easing: EASE, fill: "forwards" }).finished;
+    await esperar(200);
+
+    // persianas: pretas saem primeiro, as vermelhas vêm logo atrás
+    const cols = [...listras.children];
+    const meio = (cols.length - 1) / 2;
+    const anims = [];
+    cols.forEach((col, k) => {
+      const dir = k % 2 ? 1 : -1;
+      const atraso = Math.abs(k - meio) * 55;
+      anims.push(col.lastElementChild.animate(
+        [{ transform: "translateY(0)" }, { transform: `translateY(${dir * 101}%)` }],
+        { duration: 680, delay: atraso, easing: EASE, fill: "forwards" }
+      ));
+      anims.push(col.firstElementChild.animate(
+        [{ transform: "translateY(0)" }, { transform: `translateY(${dir * 101}%)` }],
+        { duration: 680, delay: atraso + 110, easing: EASE, fill: "forwards" }
+      ));
+    });
+    await Promise.all(anims.map((a) => a.finished));
   }
 
   function limpar() {
-    wipe.classList.remove("is-on");
+    wipe.classList.remove("is-on", "is-covered");
     if (wipe.hidePopover) { try { wipe.hidePopover(); } catch (_) {} }
     wipe.getAnimations({ subtree: true }).forEach((a) => a.cancel());
-    bolas[2].style.transform = "";
     rotulo.style.opacity = "";
     wipe.querySelectorAll(".wipe-spark").forEach((s) => s.remove());
   }
@@ -126,14 +181,14 @@
     rodando = true;
     const { x, y } = pontoDo(evento);
     try {
-      await cobrir(x, y, NOMES[hash.slice(1)] || "");
+      await cobrir(x, y, hash);
       if (window.fecharPlayer && document.getElementById("player").open) {
         document.getElementById("player").close();
       }
       if (antes) antes();
       trocar(hash);
-      // espera o layout da nova tela assentar (mostrar() usa requestAnimationFrame)
-      await esperar(reduz ? 60 : 280);
+      // segura a palavra na tela enquanto a nova tela se monta por baixo
+      await esperar(reduz ? 60 : 420);
       await revelar();
     } finally {
       limpar();

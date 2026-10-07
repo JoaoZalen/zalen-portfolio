@@ -106,7 +106,8 @@ e reprodução externa precisam de verificação em navegador.
 
 TELAS E TELA INICIAL (07/10/2026)
 O site agora tem telas separadas: Início, Trabalhos, Catálogo, Coleções e
-Contato. A troca entre elas usa a transição com bolas.
+Contato. A troca entre elas usa a transição: bolas cobrem a tela, o nome
+da tela entra letra por letra e persianas abrem a tela nova.
 Os textos da tela inicial ficam no perfil.js:
   chamada         → frase grande do topo
   servicos        → cards "O que eu faço" (colecao = pasta que abre no catálogo)

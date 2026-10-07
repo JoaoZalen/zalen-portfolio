@@ -14,7 +14,7 @@ function montarCatalogo() {
   // cards de coleção com mosaico das capas
   document.getElementById('collectionCards').innerHTML=estado.clientes.map((c,k)=>{
     const capas=c.edicoes.slice(0,3).map(ed=>`<img src="${esc(ed.capa)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">`).join('');
-    return `<button class="collection-card" data-collection="${esc(c.id)}" data-reveal data-tilt style="--d:${k*90}ms"><div class="collection-covers" data-n="${Math.min(3,c.edicoes.length)}">${capas}</div><div class="collection-copy"><strong>${pad(c.edicoes.length)}</strong><span>${esc(c.nome)}</span><small>${c.edicoes.length===1?'1 edição':c.edicoes.length+' edições'} · Explorar ↗</small></div></button>`;
+    return `<button class="collection-card" data-collection="${esc(c.id)}" data-reveal data-tilt style="--d:${k*90}ms"><div class="collection-covers" data-n="${Math.min(3,c.edicoes.length)}">${capas}</div><div class="collection-copy"><strong>${pad(c.edicoes.length)}</strong><span>${esc(c.nome)}</span><small>Explorar ↗</small></div></button>`;
   }).join('');
   document.getElementById('collectionCards').addEventListener('click',event=>{const b=event.target.closest('[data-collection]');if(b)selecionarColecao(b.dataset.collection,event);});
   const colecoes=[{id:'todos',nome:'Todos'},...estado.clientes];
