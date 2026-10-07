@@ -417,6 +417,7 @@ function prepararPainel(panel) {
       const anterior = painelYoutube.ativo;
       anterior._ytPanelPlayer?.destroy();
       anterior._ytPanelPlayer = null;
+      anterior._resetYoutube?.();
       anterior.classList.remove("is-youtube-ready", "is-skimming");
       $(".panel-youtube", anterior)?.remove();
     }
@@ -450,6 +451,9 @@ function prepararPainel(panel) {
     return ytReady;
   }
 
+  // chamado quando outro painel assume o único player do YouTube
+  panel._resetYoutube = () => { yt = null; ytReady = null; };
+
   if (!ed.youtubeId) video.addEventListener("loadedmetadata", () => {
     habilitar(video.duration || 0);
     if (!$(".panel-poster", panel)) video.currentTime = Math.min(1, ed.duracaoSeg / 3);
@@ -476,6 +480,8 @@ function prepararPainel(panel) {
   async function irPara(p, final = false) {
     if (ed.youtubeId) await prepararYoutubePainel();
     if (!pronto || !duracao) return;
+    // o player do YouTube pode demorar: ignora se o mouse/foco já saiu
+    if (!arrastando && !media.matches(":hover") && document.activeElement !== media) return;
     posTeclado = p;
     const t = p * duracao;
     panel.classList.add("is-skimming");
@@ -484,9 +490,10 @@ function prepararPainel(panel) {
       const agora = performance.now();
       if (final || agora - ultimoSeek > 140) {
         ultimoSeek = agora;
-        yt.seekTo(t, true);
+        // Sem tocar, o YouTube nunca baixa frames (fica preto). Toca mudo a partir do ponto.
         yt.mute();
-        if (!arrastando) yt.pauseVideo();
+        yt.seekTo(t, true);
+        yt.playVideo();
       }
     } else if (video.readyState >= 1 && !video.seeking) {
       video.muted = true;
@@ -520,6 +527,7 @@ function prepararPainel(panel) {
   function sairDoScrub() {
     panel.classList.remove("is-skimming");
     cursorLabel("");
+    if (yt && yt.pauseVideo) yt.pauseVideo();
   }
   media.addEventListener("pointerleave", () => { if (!arrastando) sairDoScrub(); });
   media.addEventListener("keydown", (e) => {

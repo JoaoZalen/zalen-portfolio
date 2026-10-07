@@ -1,6 +1,7 @@
 /* Previews silenciosos para hover/focus em cards, tabela e painéis. */
 (function () {
-  const podeTocar = () => /^https?:$/.test(location.protocol) && !matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // Só toca quando a pessoa passa o mouse, então vale mesmo com "reduzir movimento" ligado.
+  const podeTocar = () => /^https?:$/.test(location.protocol);
   const hoverFino = matchMedia("(hover: hover) and (pointer: fine)").matches;
   let ativo = null;
 
