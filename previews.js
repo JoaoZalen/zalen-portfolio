@@ -7,8 +7,6 @@
   function edicaoDoAlvo(alvo) {
     const botao = alvo.closest("[data-preview]");
     if (botao) return { host: botao.querySelector(".card-cover, .thumb-button") || botao, indice: Number(botao.dataset.preview) };
-    const painel = alvo.closest(".panel");
-    if (painel) return { host: painel.querySelector(".panel-media"), indice: Number(painel.dataset.i) };
     return null;
   }
 

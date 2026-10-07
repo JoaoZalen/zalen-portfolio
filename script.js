@@ -362,6 +362,23 @@ function renderPaineis() {
   $$(".panel", stack).forEach(prepararPainel);
 }
 
+const painelYoutube = { api: null, ativo: null };
+function carregarYoutubeAPI() {
+  if (window.YT && YT.Player) return Promise.resolve();
+  if (painelYoutube.api) return painelYoutube.api;
+  painelYoutube.api = new Promise((ok, falha) => {
+    const anterior = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => { if (anterior) anterior(); ok(); };
+    if (!$('script[src="https://www.youtube.com/iframe_api"]')) {
+      const s = document.createElement("script");
+      s.src = "https://www.youtube.com/iframe_api";
+      s.onerror = falha;
+      document.head.appendChild(s);
+    }
+  });
+  return painelYoutube.api;
+}
+
 function prepararPainel(panel) {
   const i = +panel.dataset.i;
   const ed = estado.edicoes[i];
@@ -371,24 +388,74 @@ function prepararPainel(panel) {
   const dur = $(".panel-dur", media);
   const titulo = $(".panel-title", panel);
 
-  if (ed.youtubeId) {
-    media.setAttribute("role", "button");
-    media.tabIndex = 0;
-    media.setAttribute("aria-label", "Assistir " + ed.titulo);
-    media.addEventListener("click", () => abrirPlayer(i));
-    media.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abrirPlayer(i); } });
-    $(".btn-mega", panel).addEventListener("click", () => abrirPlayer(i));
-    return;
+  let pronto = false, duracao = 0, yt = null, ytReady = null, arrastando = false, ultimoSeek = 0, pointerInicio = null, moveu = false;
+
+  function atualizarUI(p, t) {
+    const x = p * media.getBoundingClientRect().width;
+    scrub.style.transform = `translateX(${x}px)`;
+    media.style.setProperty("--p", p);
+    $("b", dur).textContent = timecode(t);
+    cursorLabel(timecode(t));
   }
-  video.addEventListener("loadedmetadata", () => {
-    ed.duracaoSeg = video.duration || 0;
-    $("b", dur).textContent = duracaoCurta(ed.duracaoSeg);
+
+  function habilitar(segundos) {
+    duracao = segundos || 0;
+    ed.duracaoSeg = duracao;
+    if (!duracao) return;
+    $("b", dur).textContent = duracaoCurta(duracao);
     dur.hidden = false;
+    pronto = true;
+    media.dataset.scrubReady = "true";
+  }
+
+  function prepararYoutubePainel() {
+    if (ytReady) return ytReady;
+    if (painelYoutube.ativo && painelYoutube.ativo !== panel) {
+      const anterior = painelYoutube.ativo;
+      anterior._ytPanelPlayer?.destroy();
+      anterior._ytPanelPlayer = null;
+      anterior.classList.remove("is-youtube-ready", "is-skimming");
+      $(".panel-youtube", anterior)?.remove();
+    }
+    painelYoutube.ativo = panel;
+    const holder = document.createElement("div");
+    holder.id = `panelYoutube-${i}-${Date.now()}`;
+    holder.className = "panel-youtube";
+    media.insertBefore(holder, $(".panel-poster", media));
+    ytReady = carregarYoutubeAPI().then(() => new Promise((ok) => {
+      yt = new YT.Player(holder.id, {
+        width: "100%", height: "100%",
+        videoId: ed.youtubeId,
+        playerVars: { autoplay: 0, mute: 1, playsinline: 1, controls: 0, disablekb: 1, rel: 0, origin: location.origin === "null" ? undefined : location.origin },
+        events: {
+          onReady: () => {
+            document.getElementById(holder.id)?.classList.add("panel-youtube");
+            yt.mute();
+            panel._ytPanelPlayer = yt;
+            const tentar = () => {
+              const d = yt.getDuration();
+              if (d > 0) { habilitar(d); panel.classList.add("is-youtube-ready"); ok(yt); }
+              else setTimeout(tentar, 120);
+            };
+            tentar();
+          }
+        }
+      });
+    }));
+    return ytReady;
+  }
+
+  if (!ed.youtubeId) video.addEventListener("loadedmetadata", () => {
+    habilitar(video.duration || 0);
     if (!$(".panel-poster", panel)) video.currentTime = Math.min(1, ed.duracaoSeg / 3);
   });
 
   media.addEventListener("click", () => abrirPlayer(i));
   $(".btn-mega", panel).addEventListener("click", () => abrirPlayer(i));
+  media.setAttribute("role", "button");
+  media.tabIndex = 0;
+  media.setAttribute("aria-label", "Arraste para prévia ou pressione Enter para assistir " + ed.titulo);
+  media.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abrirPlayer(i); } });
 
   // glitch rápido quando o painel entra na tela
   new IntersectionObserver(([en]) => {
@@ -398,18 +465,59 @@ function prepararPainel(panel) {
     }
   }, { threshold: .6 }).observe(titulo);
 
-  if (!temHover) return;
-  media.addEventListener("pointermove", (e) => {
+  async function aplicarPonteiro(e, final = false) {
+    if (ed.youtubeId) await prepararYoutubePainel();
+    if (!pronto || !duracao) return;
     const r = media.getBoundingClientRect();
     const p = clamp((e.clientX - r.left) / r.width);
-    const t = p * (video.duration || 0);
+    const t = p * duracao;
     panel.classList.add("is-skimming");
-    if (video.readyState >= 1 && !video.seeking) video.currentTime = t;
-    scrub.style.transform = `translateX(${p * r.width}px)`;
-    media.style.setProperty("--p", p);
-    cursorLabel(timecode(t));
+    atualizarUI(p, t);
+    if (ed.youtubeId) {
+      const agora = performance.now();
+      if (final || agora - ultimoSeek > 140) {
+        ultimoSeek = agora;
+        yt.seekTo(t, true);
+        yt.mute();
+        if (!arrastando) yt.pauseVideo();
+      }
+    } else if (video.readyState >= 1 && !video.seeking) {
+      video.muted = true;
+      video.currentTime = t;
+    }
+  }
+
+  media.addEventListener("pointerdown", async (e) => {
+    if (e.button != null && e.button !== 0) return;
+    pointerInicio = { x: e.clientX, y: e.clientY };
+    moveu = false;
+    arrastando = true;
+    media.setPointerCapture(e.pointerId);
+    e.preventDefault();
+    await aplicarPonteiro(e, true);
   });
+  media.addEventListener("pointermove", (e) => {
+    if (!arrastando) return;
+    if (pointerInicio && Math.hypot(e.clientX - pointerInicio.x, e.clientY - pointerInicio.y) > 4) moveu = true;
+    aplicarPonteiro(e);
+  });
+  media.addEventListener("pointerup", (e) => {
+    if (!arrastando) return;
+    arrastando = false;
+    aplicarPonteiro(e, true);
+    if (media.hasPointerCapture(e.pointerId)) media.releasePointerCapture(e.pointerId);
+    setTimeout(() => { moveu = false; }, 0);
+  });
+  media.addEventListener("pointercancel", (e) => {
+    arrastando = false;
+    if (media.hasPointerCapture(e.pointerId)) media.releasePointerCapture(e.pointerId);
+  });
+  media.addEventListener("click", (e) => {
+    if (moveu) { e.preventDefault(); e.stopImmediatePropagation(); }
+  }, true);
+  if (temHover) media.addEventListener("pointerenter", () => { if (ed.youtubeId) prepararYoutubePainel(); });
   media.addEventListener("pointerleave", () => {
+    if (arrastando) return;
     panel.classList.remove("is-skimming");
     media.style.setProperty("--p", 0);
     cursorLabel("");
