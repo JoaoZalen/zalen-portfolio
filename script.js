@@ -47,13 +47,18 @@ function timecode(seg) {
 }
 const duracaoCurta = (seg) => `${Math.floor(seg / 60)}:${pad(Math.round(seg % 60))}`;
 
-function carregarScript(src, ctx) {
+/* tenta de novo uma vez: numa internet instável um download pode ser abortado */
+function carregarScript(src, ctx, tentativa = 1) {
   return new Promise((ok, falha) => {
     const s = document.createElement("script");
     s.src = src;
     if (ctx) contextoDoScript.set(s.src, ctx);
     s.onload = ok;
-    s.onerror = () => falha(src);
+    s.onerror = () => {
+      s.remove();
+      if (tentativa < 2) setTimeout(() => carregarScript(src, ctx, tentativa + 1).then(ok, falha), 400);
+      else falha(src);
+    };
     document.head.appendChild(s);
   });
 }
