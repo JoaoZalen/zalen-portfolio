@@ -1001,15 +1001,16 @@ body[data-tela="topo"]:not(.is-scrolled) .nav::after { opacity: 0; }
   min-width: 115%; min-height: 115%; width: auto; height: auto;
   transform: translate(-50%, -50%) scale(1.08);
   object-fit: cover;
-  filter: blur(20px) grayscale(.75) contrast(1.35) saturate(.75);
-  opacity: .62;
+  filter: blur(14px) grayscale(1) contrast(1.7) brightness(.95);
+  opacity: .9;
 }
+/* multiply vermelho: o claro do vídeo vira vermelho e o escuro vira sombra preta,
+   então o vídeo aparece de verdade sem lavar o vermelho da marca */
 .contact-bg::after {
   content: ""; position: absolute; inset: 0;
   background:
-    linear-gradient(90deg, rgba(255, 42, 31, .78), rgba(255, 42, 31, .58)),
-    radial-gradient(circle at 18% 88%, rgba(0, 0, 0, .34), transparent 34%),
-    radial-gradient(circle at 78% 18%, rgba(0, 0, 0, .28), transparent 40%);
+    radial-gradient(ellipse at 30% 50%, transparent 40%, rgba(0, 0, 0, .35) 100%),
+    var(--red);
   mix-blend-mode: multiply;
 }
 .contact-title {
@@ -1086,22 +1087,15 @@ body[data-tela="topo"]:not(.is-scrolled) .nav::after { opacity: 0; }
   position: absolute; border-radius: 50%; background: var(--black); opacity: .9;
   animation: float var(--t, 14s) ease-in-out infinite alternate;
 }
+/* partículas: cada <i> traz posição (--l), tamanho (--s), cor (--c),
+   duração (--t), atraso (--d) e deriva lateral (--x) no próprio HTML */
 .contact-balls i {
-  bottom: -8vw;
-  animation-name: particleRise;
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
-  animation-direction: normal;
-  box-shadow: 0 0 34px rgba(0, 0, 0, .12);
+  left: var(--l, 50%); bottom: -60px;
+  width: var(--s, 12px); height: var(--s, 12px);
+  background: var(--c, var(--black)); opacity: 0;
+  animation: particleRise var(--t, 10s) linear var(--d, 0s) infinite;
+  will-change: transform, opacity;
 }
-.contact-balls i:nth-child(1) { width: 8vw; height: 8vw; right: 4%; --x: -5vw; --r: 18deg; --t: 13s; }
-.contact-balls i:nth-child(2) { width: 6vw; height: 6vw; right: 25%; background: var(--paper); --x: 4vw; --r: -28deg; --t: 10s; animation-delay: -5s; }
-.contact-balls i:nth-child(3) { width: 3vw; height: 3vw; left: 46%; --x: -2vw; --r: 36deg; --t: 8s; animation-delay: -7s; }
-.contact-balls i:nth-child(4) { width: 2vw; height: 2vw; left: 14%; background: var(--paper); --x: 5vw; --r: -18deg; --t: 7s; animation-delay: -4s; }
-.contact-balls i:nth-child(5) { width: 5vw; height: 5vw; right: 9%; --x: -5vw; --r: 22deg; --t: 11s; animation-delay: -8s; }
-.contact-balls i:nth-child(6) { width: 1.5vw; height: 1.5vw; left: 58%; background: var(--paper); --x: 2vw; --r: -42deg; --t: 6.5s; animation-delay: -2s; }
-.contact-balls i:nth-child(7) { width: 2.6vw; height: 2.6vw; left: 34%; --x: -4vw; --r: 16deg; --t: 9s; animation-delay: -6s; }
-.contact-balls i:nth-child(8) { width: 7vw; height: 7vw; right: 40%; background: var(--paper); opacity: .75; --x: 3vw; --r: -24deg; --t: 12s; animation-delay: -9s; }
 .cta-balls i:nth-child(1) { width: 26vw; height: 26vw; right: -7vw; top: -8vw; --t: 16s; }
 .cta-balls i:nth-child(2) { width: 9vw; height: 9vw; right: 18%; bottom: 12%; background: var(--paper); --t: 11s; }
 .cta-balls i:nth-child(3) { width: 4vw; height: 4vw; left: 46%; top: 14%; --t: 9s; }
@@ -1113,10 +1107,10 @@ body[data-tela="topo"]:not(.is-scrolled) .nav::after { opacity: 0; }
   100% { transform: translate(-1.5vw, 1.5vw) scale(.95); }
 }
 @keyframes particleRise {
-  0% { transform: translate3d(0, 0, 0) rotate(0deg) scale(.82); opacity: 0; }
-  12% { opacity: .9; }
-  82% { opacity: .72; }
-  100% { transform: translate3d(var(--x, 0), -118vh, 0) rotate(var(--r, 20deg)) scale(1.08); opacity: 0; }
+  0% { transform: translate3d(0, 0, 0) scale(.6); opacity: 0; }
+  10% { opacity: .95; }
+  75% { opacity: .8; }
+  100% { transform: translate3d(var(--x, 0), calc(-100vh - 120px), 0) scale(1.1); opacity: 0; }
 }
 @keyframes contactCardFloat {
   from { transform: translate3d(0, 0, 0); }
@@ -1398,6 +1392,7 @@ body[data-tela="topo"]:not(.is-scrolled) .nav::after { opacity: 0; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
   .grain, .ticker-track, .contact-balls i, .cta-balls i { animation: none !important; }
+  .contact-balls, .contact-bg video { display: none; }
   .motion-bg { display: none; }
   .zoom { height: auto; }
   .zoom-stage { position: relative; }
