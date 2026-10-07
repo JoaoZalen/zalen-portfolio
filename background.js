@@ -3,7 +3,11 @@ function iniciarFundo(edicoes) {
   const box = document.getElementById("motionBg");
   const local = document.getElementById("motionFallback");
   const modal = document.getElementById("player");
+  if (!box || !local || !modal) return;
   if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  local.muted = true;
+  local.loop = true;
+  local.playsInline = true;
   const locais = edicoes.filter(e => !e.youtubeId && e.video);
   const externos = /^https?:$/.test(location.protocol) ? edicoes.filter(e => e.youtubeId && e.tipo !== "Ao vivo") : [];
   let yt, atual = null, ultimoId = "", proximaTroca = 0, falhas = 0, buscarTrecho = false;
@@ -72,7 +76,8 @@ function iniciarFundo(edicoes) {
       }
     });
     // O API substitui o div pelo iframe: restaura a classe de posicionamento.
-    document.getElementById("motionYoutube").classList.add("motion-youtube");
+    const frame = document.getElementById("motionYoutube");
+    if (frame) frame.classList.add("motion-youtube");
   }
   if (externos.length) {
     const antes = window.onYouTubeIframeAPIReady;

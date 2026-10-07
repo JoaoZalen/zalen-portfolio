@@ -13,6 +13,7 @@ const reduzMovimento = window.matchMedia("(prefers-reduced-motion: reduce)").mat
 const temHover = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
 
 const estado = { perfil: {}, ids: [], clientes: [], edicoes: [], filtro: "todos", aberta: -1 };
+window.estado = estado;
 
 /* ---------- Funções chamadas pelos arquivos info.js ---------- */
 let contexto = null;
@@ -66,7 +67,8 @@ function mostrarErro(msg) {
 }
 
 function avatarHTML(c) {
-  return `<span class="avatar"><img src="${esc(c.pasta)}foto.jpg" alt="" onerror="this.replaceWith(document.createTextNode('${esc(iniciais(c.nome))}'))"></span>`;
+  const foto = c.foto || c.arquivoFoto;
+  return `<span class="avatar">${foto ? `<img src="${esc(c.pasta + foto)}" alt="" onerror="this.replaceWith(document.createTextNode('${esc(iniciais(c.nome))}'))">` : esc(iniciais(c.nome))}</span>`;
 }
 
 /* ---------- Leitura das pastas ---------- */
