@@ -388,7 +388,7 @@ function prepararPainel(panel) {
   const dur = $(".panel-dur", media);
   const titulo = $(".panel-title", panel);
 
-  let pronto = false, duracao = 0, yt = null, ytReady = null, arrastando = false, ultimoSeek = 0, pointerInicio = null, moveu = false;
+  let pronto = false, duracao = 0, yt = null, ytReady = null, arrastando = false, ultimoSeek = 0;
 
   function atualizarUI(p, t) {
     const x = p * media.getBoundingClientRect().width;
@@ -450,12 +450,10 @@ function prepararPainel(panel) {
     if (!$(".panel-poster", panel)) video.currentTime = Math.min(1, ed.duracaoSeg / 3);
   });
 
-  media.addEventListener("click", () => abrirPlayer(i));
   $(".btn-mega", panel).addEventListener("click", () => abrirPlayer(i));
-  media.setAttribute("role", "button");
+  media.setAttribute("role", "img");
   media.tabIndex = 0;
-  media.setAttribute("aria-label", "Arraste para prévia ou pressione Enter para assistir " + ed.titulo);
-  media.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abrirPlayer(i); } });
+  media.setAttribute("aria-label", "Prévia arrastável de " + ed.titulo);
 
   // glitch rápido quando o painel entra na tela
   new IntersectionObserver(([en]) => {
@@ -489,16 +487,13 @@ function prepararPainel(panel) {
 
   media.addEventListener("pointerdown", async (e) => {
     if (e.button != null && e.button !== 0) return;
-    pointerInicio = { x: e.clientX, y: e.clientY };
-    moveu = false;
     arrastando = true;
     media.setPointerCapture(e.pointerId);
     e.preventDefault();
     await aplicarPonteiro(e, true);
   });
   media.addEventListener("pointermove", (e) => {
-    if (!arrastando) return;
-    if (pointerInicio && Math.hypot(e.clientX - pointerInicio.x, e.clientY - pointerInicio.y) > 4) moveu = true;
+    if (!arrastando && (!temHover || e.pointerType === "touch")) return;
     aplicarPonteiro(e);
   });
   media.addEventListener("pointerup", (e) => {
@@ -506,15 +501,12 @@ function prepararPainel(panel) {
     arrastando = false;
     aplicarPonteiro(e, true);
     if (media.hasPointerCapture(e.pointerId)) media.releasePointerCapture(e.pointerId);
-    setTimeout(() => { moveu = false; }, 0);
   });
   media.addEventListener("pointercancel", (e) => {
     arrastando = false;
     if (media.hasPointerCapture(e.pointerId)) media.releasePointerCapture(e.pointerId);
   });
-  media.addEventListener("click", (e) => {
-    if (moveu) { e.preventDefault(); e.stopImmediatePropagation(); }
-  }, true);
+  media.addEventListener("click", (e) => { e.preventDefault(); e.stopImmediatePropagation(); }, true);
   if (temHover) media.addEventListener("pointerenter", () => { if (ed.youtubeId) prepararYoutubePainel(); });
   media.addEventListener("pointerleave", () => {
     if (arrastando) return;
