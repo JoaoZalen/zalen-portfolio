@@ -809,9 +809,21 @@ function atualizarLetreiro(dt, velScroll) {
 function prepararContato() {
   const titulo = $("#contactTitle");
   $$(".line", titulo).forEach((linha) => {
-    linha.innerHTML = [...linha.textContent].map((ch) => `<span class="ch" aria-hidden="true">${esc(ch)}</span>`).join("");
+    linha.innerHTML = [...linha.textContent].map((ch) => `<span class="ch" aria-hidden="true">${ch === " " ? "&nbsp;" : esc(ch)}</span>`).join("");
   });
-  if (hero.ed) $("#contactBg").style.backgroundImage = `url('${hero.ed.capa}')`;
+  const fundo = estado.edicoes.find((e) => !e.youtubeId && e.video) || hero.ed;
+  if (fundo) $("#contactBg").style.backgroundImage = `url('${fundo.capa}')`;
+  const videoFundo = $("#contactBgVideo");
+  if (videoFundo && fundo && fundo.video && !reduzMovimento) {
+    videoFundo.src = fundo.video;
+    videoFundo.muted = true;
+    videoFundo.loop = true;
+    videoFundo.playsInline = true;
+    const sincronizar = ([entrada]) => {
+      entrada.isIntersecting ? videoFundo.play().catch(() => {}) : videoFundo.pause();
+    };
+    new IntersectionObserver(sincronizar, { threshold: .2 }).observe($("#contato"));
+  }
   if (!temHover || reduzMovimento) return;
 
   const letras = $$(".ch", titulo);

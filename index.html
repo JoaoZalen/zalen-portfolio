@@ -191,25 +191,21 @@
 
     <!-- ======================= TELA: CONTATO ======================= -->
     <section class="contact" id="contato" data-screen="contato">
-      <div class="contact-bg" id="contactBg"></div>
-      <div class="contact-balls" aria-hidden="true"><i></i><i></i><i></i></div>
-      <h2 class="contact-title" id="contactTitle" aria-label="Bora editar?">
-        <span class="line">BORA</span>
-        <span class="line">EDITAR?</span>
-      </h2>
+      <div class="contact-bg" id="contactBg">
+        <video id="contactBgVideo" muted playsinline loop preload="metadata" tabindex="-1"></video>
+      </div>
+      <div class="contact-balls" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
       <div class="contact-grid">
-        <div>
+        <div class="contact-copy">
+          <h2 class="contact-title" id="contactTitle" aria-label="Entre em contato">
+            <span class="line">ENTRE EM</span>
+            <span class="line">CONTATO</span>
+          </h2>
+        </div>
+        <aside class="contact-card-panel" aria-label="Formas de contato">
           <p class="contact-label">Contato</p>
           <ul class="contact-links" id="contactLinks" data-contact-links></ul>
-        </div>
-        <div class="contact-brief">
-          <p class="contact-label">Envie</p>
-          <ol>
-            <li><b>01</b>Música ou vídeo</li>
-            <li><b>02</b>Referências</li>
-            <li><b>03</b>Prazo</li>
-          </ol>
-        </div>
+        </aside>
       </div>
     </section>
   </main>
