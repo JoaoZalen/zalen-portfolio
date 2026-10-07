@@ -145,6 +145,15 @@ function loader(promessaPronto) {
    CURSOR
    ========================================================= */
 const cursor = { x: innerWidth / 2, y: innerHeight / 2, rx: innerWidth / 2, ry: innerHeight / 2 };
+/* último ponto clicado: origem das bolas de transição e do player */
+const ultimoToque = { x: innerWidth / 2, y: innerHeight / 2 };
+addEventListener("pointerdown", (e) => { ultimoToque.x = e.clientX; ultimoToque.y = e.clientY; }, { capture: true, passive: true });
+addEventListener("keydown", (e) => {
+  if (e.key !== "Enter" && e.key !== " ") return;
+  const r = document.activeElement?.getBoundingClientRect?.();
+  if (r && r.width) { ultimoToque.x = r.left + r.width / 2; ultimoToque.y = r.top + r.height / 2; }
+}, true);
+window.ultimoToque = ultimoToque;
 function iniciarCursor() {
   if (!temHover || reduzMovimento) return;
   document.documentElement.classList.add("has-cursor");
@@ -209,22 +218,34 @@ function renderPerfil() {
   document.title = `${nome} · ${funcao}`;
   $("#navLogo").textContent = nome.toUpperCase();
   $("#zoomWord").textContent = nome.toUpperCase();
+  $$("[data-brand]").forEach((el) => { el.textContent = nome.toUpperCase(); });
   $("#heroRole").textContent = funcao;
   $("#heroBio").textContent = p.bio || "";
   $("#footName").textContent = nome;
   $("#year").textContent = new Date().getFullYear();
 
   const c = p.contato || {};
+  const zap = String(c.whatsapp || "").replace(/\D/g, "");
   const links = [
     c.email && { rotulo: c.email, url: `mailto:${c.email}` },
-    c.twitter && { rotulo: "Twitter / X", url: c.twitter },
+    zap && { rotulo: "WhatsApp", url: `https://wa.me/${zap}` },
     c.instagram && { rotulo: "Instagram", url: c.instagram },
+    c.youtube && { rotulo: "YouTube", url: c.youtube },
+    c.twitter && { rotulo: "Twitter / X", url: c.twitter },
     c.tiktok && { rotulo: "TikTok", url: c.tiktok },
     c.discord && { rotulo: "Discord", url: c.discord }
   ].filter(Boolean);
-  $("#contactLinks").innerHTML = links.length
+  const html = links.length
     ? links.map((l) => `<li><a href="${esc(l.url)}" data-magnet ${l.url.startsWith("mailto:") ? "" : 'target="_blank" rel="noopener"'}>${esc(l.rotulo)}</a></li>`).join("")
     : `<li class="contact-empty">Adicione seus contatos em perfil.js para eles aparecerem aqui.</li>`;
+  $$("[data-contact-links]").forEach((ul) => { ul.innerHTML = html; });
+  // o botão do rodapé vai direto para o primeiro contato (e-mail ou WhatsApp)
+  const direto = links[0];
+  if (direto) {
+    const cta = $("#footerCta");
+    cta.href = direto.url;
+    if (!direto.url.startsWith("mailto:")) { cta.target = "_blank"; cta.rel = "noopener"; }
+  }
 }
 
 /* =========================================================
@@ -594,7 +615,8 @@ function renderLetreiro() {
 
   const peek = $("#peek");
   $$(".mq-item", track).forEach((item) => {
-    item.addEventListener("click", () => {
+    item.addEventListener("click", (e) => {
+      if (window.transicaoPara) { transicaoPara("#trabalhos", e, () => filtrar(item.dataset.id)); return; }
       filtrar(item.dataset.id);
       location.hash = "trabalhos";
       $("#trabalhos").scrollIntoView({behavior:reduzMovimento ? "auto" : "smooth"});
@@ -726,7 +748,16 @@ function abrirPlayer(i, inicio = 0) {
   $("#playerPrev strong").textContent = ant ? ant.ed.titulo : "";
   $("#playerNext strong").textContent = prox ? prox.ed.titulo : "";
 
-  if (!player.open) { player.showModal(); document.body.style.overflow = "hidden"; }
+  if (!player.open) {
+    // o player nasce como uma bola que cresce a partir do clique
+    const r = Math.hypot(Math.max(ultimoToque.x, innerWidth - ultimoToque.x), Math.max(ultimoToque.y, innerHeight - ultimoToque.y));
+    player.style.setProperty("--cx", `${ultimoToque.x}px`);
+    player.style.setProperty("--cy", `${ultimoToque.y}px`);
+    player.style.setProperty("--cr", `${Math.ceil(r) + 2}px`);
+    player.classList.remove("is-closing");
+    player.showModal();
+    document.body.style.overflow = "hidden";
+  }
   player.scrollTop = 0;
   if (!ed.youtubeId) playerVideo.play().catch(() => {});
   if (!reduzMovimento) { t.classList.add("is-glitch"); setTimeout(() => t.classList.remove("is-glitch"), 500); }
@@ -739,7 +770,31 @@ function passo(d) {
   if (alvo) abrirPlayer(alvo.i);
 }
 
-$("#playerClose").addEventListener("click", () => player.close());
+/* fecha encolhendo numa bola até o botão de fechar */
+let fechando = null;
+function fecharPlayer() {
+  if (!player.open) return Promise.resolve();
+  if (fechando) return fechando;
+  if (reduzMovimento || !player.animate) { player.close(); return Promise.resolve(); }
+  const b = $("#playerClose").getBoundingClientRect();
+  const x = b.left + b.width / 2, y = b.top + b.height / 2;
+  const r = Math.ceil(Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y))) + 2;
+  player.classList.add("is-closing");
+  const anim = player.animate(
+    { clipPath: [`circle(${r}px at ${x}px ${y}px)`, `circle(0px at ${x}px ${y}px)`] },
+    { duration: 620, easing: "cubic-bezier(.76,0,.24,1)", fill: "forwards" }
+  );
+  fechando = anim.finished.catch(() => {}).then(() => {
+    player.close();
+    anim.cancel();
+    player.classList.remove("is-closing");
+    fechando = null;
+  });
+  return fechando;
+}
+window.fecharPlayer = fecharPlayer;
+player.addEventListener("cancel", (e) => { e.preventDefault(); fecharPlayer(); });
+$("#playerClose").addEventListener("click", fecharPlayer);
 $("#playerPrev").addEventListener("click", () => passo(-1));
 $("#playerNext").addEventListener("click", () => passo(1));
 player.addEventListener("close", () => {

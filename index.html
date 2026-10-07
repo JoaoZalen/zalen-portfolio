@@ -33,6 +33,7 @@
   <div class="loader" id="loader" aria-hidden="true">
     <div class="loader-top">
       <span class="loader-rec"><i></i>REC</span>
+      <span class="loader-brand" data-brand>ZALEN</span>
       <span class="loader-tc" id="loaderTc">00:00:00:00</span>
     </div>
     <div class="loader-num" id="loaderNum">000</div>
@@ -48,8 +49,8 @@
       <a href="#trabalhos" data-magnet>Trabalhos</a>
       <a href="#catalogo" data-magnet>Catálogo</a>
       <a href="#clientes" data-magnet>Coleções</a>
-      <a href="#contato" data-magnet>Contato</a>
     </nav>
+    <a href="#contato" class="nav-cta" data-magnet><span><span class="nav-cta-long">Entrar em </span>contato</span></a>
   </header>
 
   <main>
@@ -133,18 +134,38 @@
         <span class="line">BORA</span>
         <span class="line">EDITAR?</span>
       </h2>
-      <ul class="contact-links" id="contactLinks"></ul>
+      <ul class="contact-links" id="contactLinks" data-contact-links></ul>
     </section>
   </main>
 
-  <footer class="footer">
-    <span>© <span id="year"></span> <span id="footName">Zalen</span></span>
-    <span>Portfólio de Zalen · Vídeos e créditos dos respectivos autores.</span>
+  <footer class="site-footer" id="rodape">
+    <div class="sf-top">
+      <div class="sf-cta">
+        <p class="sf-kicker">Tem um projeto parado na pasta? Bora tirar do papel.</p>
+        <a class="btn-mega" id="footerCta" href="#contato" data-magnet><span>Entrar em contato</span></a>
+      </div>
+      <ul class="sf-links" data-contact-links></ul>
+    </div>
+    <a class="sf-word" href="#topo" data-brand aria-label="Voltar ao início">ZALEN</a>
+    <div class="sf-bottom">
+      <span>© <span id="year"></span> <span id="footName">Zalen</span> · Editor de vídeo</span>
+      <span>Vídeos e créditos dos respectivos autores.</span>
+      <a href="#topo">Voltar ao topo ↑</a>
+    </div>
   </footer>
+
+  <!-- transição: bolas cobrem a tela e uma íris revela a próxima -->
+  <div class="wipe" id="wipe" aria-hidden="true" popover="manual">
+    <i class="wipe-ball wipe-ball--red"></i>
+    <i class="wipe-ball wipe-ball--paper"></i>
+    <i class="wipe-ball wipe-ball--black"></i>
+    <div class="wipe-label"><span class="wipe-name" data-brand>ZALEN</span><span class="wipe-dest" id="wipeDest"></span></div>
+  </div>
 
   <!-- Player -->
   <dialog class="player" id="player" aria-labelledby="playerTitle">
     <div class="player-top">
+      <a href="#topo" class="player-brand" data-brand>ZALEN</a>
       <span class="player-count" id="playerCount"></span>
       <button class="player-close" id="playerClose" aria-label="Fechar" data-magnet>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5l14 14M19 5L5 19"/></svg>
@@ -167,6 +188,14 @@
       <button class="nav-btn" id="playerPrev"><span>Anterior</span><strong></strong></button>
       <button class="nav-btn nav-btn--next" id="playerNext"><span>Próximo</span><strong></strong></button>
     </div>
+    <div class="player-foot">
+      <div class="player-foot-copy">
+        <span class="player-foot-name" data-brand>ZALEN</span>
+        <p>Curtiu essa edição? Vamos fazer a sua.</p>
+      </div>
+      <ul class="sf-links" data-contact-links></ul>
+      <a href="#contato" class="btn-mega" data-magnet><span>Entrar em contato</span></a>
+    </div>
   </dialog>
 
   <div class="error" id="error" role="alert" hidden></div>
@@ -175,5 +204,6 @@
   <script src="catalog.js"></script>
   <script src="script.js"></script>
   <script src="previews.js"></script>
+  <script src="transitions.js"></script>
 </body>
 </html>
