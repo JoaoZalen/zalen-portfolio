@@ -220,7 +220,11 @@ function renderPerfil() {
   $("#zoomWord").textContent = nome.toUpperCase();
   $$("[data-brand]").forEach((el) => { el.textContent = nome.toUpperCase(); });
   $("#heroRole").textContent = funcao;
+  $("#heroKickerRole").textContent = funcao;
   $("#heroBio").textContent = p.bio || "";
+  if (p.chamada) $("#heroHeadline").textContent = p.chamada;
+  $("#heroBadge").hidden = !p.disponivel;
+  $("#heroKickerOpen").hidden = !p.disponivel;
   $("#footName").textContent = nome;
   $("#year").textContent = new Date().getFullYear();
 
@@ -246,6 +250,82 @@ function renderPerfil() {
     cta.href = direto.url;
     if (!direto.url.startsWith("mailto:")) { cta.target = "_blank"; cta.rel = "noopener"; }
   }
+}
+
+/* =========================================================
+   TELA INICIAL · faixa, números, serviços, destaques, processo
+   Tudo calculado a partir das pastas e do perfil.js.
+   ========================================================= */
+function renderInicio() {
+  const p = estado.perfil;
+  const tipos = [...new Set(estado.edicoes.map((e) => e.tipo).filter(Boolean))];
+  const especialidades = Array.isArray(p.especialidades) && p.especialidades.length ? p.especialidades : tipos;
+  const faixa = especialidades.map((t) => `<span>${esc(t)}</span><i aria-hidden="true">✦</i>`).join("");
+  $("#tickerTrack").innerHTML = faixa.repeat(4);
+  $("#tickerTrackAlt").innerHTML = faixa.repeat(4);
+
+  // números reais: nada inventado, só contagem das edições cadastradas
+  const conta = (tipo) => estado.edicoes.filter((e) => e.tipo === tipo).length;
+  const numeros = [
+    { n: estado.edicoes.length, rotulo: "edições publicadas" },
+    { n: conta("Comissão"), rotulo: "comissões entregues" },
+    { n: conta("Reedit"), rotulo: "reedits" },
+    { n: conta("Projeto"), rotulo: "projetos e colaborações" }
+  ].filter((s) => s.n > 0);
+  $("#impactGrid").innerHTML = numeros.map((s, k) => `
+    <div class="impact-card" data-reveal style="--d:${k * 90}ms">
+      <strong data-count="${s.n}">${s.n}</strong>
+      <span>${esc(s.rotulo)}</span>
+    </div>`).join("");
+
+  const servicos = Array.isArray(p.servicos) ? p.servicos : [];
+  $(".services").classList.toggle("is-empty", !servicos.length);
+  $("#servicesGrid").innerHTML = servicos.map((s, k) => {
+    const col = estado.clientes.find((c) => c.id === s.colecao);
+    const capa = col && col.edicoes[0] ? col.edicoes[0].capa : "";
+    return `
+    <article class="service-card" data-reveal data-tilt style="--d:${k * 110}ms">
+      ${capa ? `<img class="service-cover" src="${esc(capa)}" alt="" loading="lazy" onerror="this.remove()">` : ""}
+      <span class="service-num">${pad(k + 1)}</span>
+      <h3>${esc(s.titulo || "")}</h3>
+      <p>${esc(s.texto || "")}</p>
+      ${col ? `<button class="service-link" data-collection="${esc(col.id)}">Ver exemplos <small>${col.edicoes.length}</small><b aria-hidden="true">→</b></button>` : ""}
+    </article>`;
+  }).join("");
+  $("#servicesGrid").onclick = (e) => {
+    const b = e.target.closest("[data-collection]");
+    if (b) selecionarColecao(b.dataset.collection, e);
+  };
+
+  // destaques: a edição em destaque + a primeira de cada coleção
+  const escolhidas = [];
+  const add = (ed) => { if (ed && !escolhidas.includes(ed)) escolhidas.push(ed); };
+  add(estado.edicoes.find((e) => e.destaque));
+  estado.clientes.forEach((c) => add(c.edicoes.find((e) => e.tipo !== "Ao vivo")));
+  $("#bento").innerHTML = escolhidas.slice(0, 4).map((ed, k) => {
+    const i = estado.edicoes.indexOf(ed);
+    return `
+    <button class="bento-item" data-preview="${i}" data-reveal data-tilt style="--d:${k * 100}ms" aria-label="Assistir ${esc(ed.titulo)}">
+      <div class="card-cover"><img src="${esc(ed.capa)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'"><span aria-hidden="true">▶</span></div>
+      <div class="bento-copy">
+        <small>${esc(ed.cliente.nome)} · ${esc(ed.tipo || "Edição")}</small>
+        <h3>${esc(ed.titulo)}</h3>
+      </div>
+    </button>`;
+  }).join("");
+  $("#bento").onclick = (e) => {
+    const b = e.target.closest("[data-preview]");
+    if (b) abrirPlayer(Number(b.dataset.preview));
+  };
+
+  const passos = Array.isArray(p.processo) ? p.processo : [];
+  $(".process").classList.toggle("is-empty", !passos.length);
+  $("#processList").innerHTML = passos.map((s, k) => `
+    <li data-reveal style="--d:${k * 120}ms">
+      <span class="process-num">${pad(k + 1)}</span>
+      <h3>${esc(s.titulo || "")}</h3>
+      <p>${esc(s.texto || "")}</p>
+    </li>`).join("");
 }
 
 /* =========================================================
@@ -338,6 +418,7 @@ function atualizarHero() {
   over.style.setProperty("--oo", oo.toFixed(3));
   over.classList.toggle("is-on", oo > .5);
   $("#zoomHint").style.setProperty("--ho", (1 - clamp(p / .08)).toFixed(3));
+  $("#zoomKicker").style.setProperty("--ho", (1 - clamp(p / .08)).toFixed(3));
 }
 
 /* =========================================================
@@ -851,7 +932,9 @@ function loopPrincipal() {
     const heroPronto = prepararHero();
     renderFiltros();
     renderPaineis();
+    renderInicio();
     montarCatalogo();
+    if (window.motionScan) motionScan();
     await document.fonts.ready;
     renderLetreiro();
     prepararContato();

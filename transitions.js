@@ -113,9 +113,9 @@
   }
 
   function trocar(hash) {
-    const alvo = document.getElementById(hash.slice(1));
+    // cada link é uma tela: na mesma tela, só volta para o topo dela
     if (location.hash === hash || (!location.hash && hash === "#topo")) {
-      if (alvo && !alvo.hidden) alvo.scrollIntoView({ behavior: "instant" });
+      window.scrollTo({ top: 0, behavior: "instant" });
     } else {
       location.hash = hash;
     }

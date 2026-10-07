@@ -5,7 +5,8 @@
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Zalen · Editor de vídeo</title>
-  <meta name="description" content="Portfólio de edição de vídeo.">
+  <meta name="description" content="Zalen, editor de vídeo: clipes para raps geek, aberturas e reedits com ritmo, efeitos e cara de cinema.">
+  <meta name="theme-color" content="#000000">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23000'/><text x='50' y='78' font-size='78' text-anchor='middle' font-family='Impact' fill='%23ff2a1f'>Z</text></svg>">
   <link rel="preload" href="assets/fonts/anton.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="style.css">
@@ -44,19 +45,22 @@
 
   <header class="nav" id="nav">
     <a href="#topo" class="nav-logo" id="navLogo" data-magnet>ZALEN</a>
-    <nav class="nav-links" aria-label="Seções">
+    <nav class="nav-links" aria-label="Telas">
       <a href="#topo" data-magnet>Início</a>
       <a href="#trabalhos" data-magnet>Trabalhos</a>
       <a href="#catalogo" data-magnet>Catálogo</a>
       <a href="#clientes" data-magnet>Coleções</a>
     </nav>
     <a href="#contato" class="nav-cta" data-magnet><span><span class="nav-cta-long">Entrar em </span>contato</span></a>
+    <i class="nav-progress" id="navProgress" aria-hidden="true"></i>
   </header>
 
   <main>
     <div class="home-shortcut"><a href="#catalogo">Abrir catálogo de edições ↗</a></div>
+
+    <!-- ======================= TELA: INÍCIO ======================= -->
     <!-- HERO: vídeo dentro das letras, zoom no scroll -->
-    <section class="zoom" id="topo">
+    <section class="zoom" id="topo" data-screen="topo">
       <div class="zoom-stage">
         <video class="zoom-video" id="heroVideo" muted playsinline loop preload="auto"></video>
         <div class="zoom-mask" id="zoomMask"><span class="zoom-word" id="zoomWord">ZALEN</span></div>
@@ -69,12 +73,19 @@
           <span class="hud-info" id="hudInfo">1920×1080 · 30 FPS</span>
         </div>
 
+        <p class="zoom-kicker" id="zoomKicker"><span id="heroKickerRole">Editor de vídeo</span><b class="zoom-kicker-dot" id="heroKickerOpen" hidden>Aberto para projetos</b></p>
+
         <div class="zoom-over" id="zoomOver">
-          <p class="zoom-role" id="heroRole">Editor de vídeo</p>
-          <p class="zoom-bio" id="heroBio"></p>
-          <button class="btn-mega" id="heroPlay" data-magnet data-cursor="Play">
-            <span>Assistir com som</span>
-          </button>
+          <div class="hero-copy">
+            <p class="hero-badge" id="heroBadge" hidden><i></i>Aberto para novos projetos</p>
+            <p class="hero-role" id="heroRole">Editor de vídeo</p>
+            <h1 class="hero-headline" id="heroHeadline">Edições que prendem do primeiro ao último frame.</h1>
+            <p class="zoom-bio" id="heroBio"></p>
+          </div>
+          <div class="hero-ctas">
+            <button class="btn-mega" id="heroPlay" data-magnet data-cursor="Play"><span>▶ Assistir showreel</span></button>
+            <a class="btn-line" href="#contato" data-magnet><span>Quero contratar →</span></a>
+          </div>
         </div>
 
         <div class="zoom-hint" id="zoomHint">
@@ -84,19 +95,80 @@
       </div>
     </section>
 
-    <!-- TRABALHOS: painéis empilhados -->
-        <section class="works" id="trabalhos">
+    <!-- faixa cinética de serviços -->
+    <section class="ticker" data-screen="topo" aria-label="Especialidades">
+      <div class="ticker-row"><div class="ticker-track" id="tickerTrack"></div></div>
+      <div class="ticker-row ticker-row--alt" aria-hidden="true"><div class="ticker-track" id="tickerTrackAlt"></div></div>
+    </section>
+
+    <!-- números reais, contados a partir das pastas -->
+    <section class="impact" data-screen="topo" aria-labelledby="impactTitle">
+      <div class="section-head">
+        <p class="eyebrow" data-reveal>EM NÚMEROS</p>
+        <h2 class="section-title" id="impactTitle" data-split>Trabalho que fala por si.</h2>
+      </div>
+      <div class="impact-grid" id="impactGrid"></div>
+    </section>
+
+    <!-- serviços -->
+    <section class="services" data-screen="topo" aria-labelledby="servicesTitle">
+      <div class="section-head">
+        <p class="eyebrow" data-reveal>O QUE EU FAÇO</p>
+        <h2 class="section-title" id="servicesTitle" data-split>Do primeiro corte ao último frame.</h2>
+      </div>
+      <div class="services-grid" id="servicesGrid"></div>
+    </section>
+
+    <!-- destaques -->
+    <section class="highlights" data-screen="topo" aria-labelledby="highlightsTitle">
+      <div class="section-head section-head--row">
+        <div>
+          <p class="eyebrow" data-reveal>DESTAQUES</p>
+          <h2 class="section-title" id="highlightsTitle" data-split>Dá o play e sente o ritmo.</h2>
+        </div>
+        <a class="btn-line" href="#trabalhos" data-magnet data-reveal><span>Ver todos os trabalhos →</span></a>
+      </div>
+      <div class="bento" id="bento"></div>
+    </section>
+
+    <!-- processo -->
+    <section class="process" data-screen="topo" aria-labelledby="processTitle">
+      <div class="section-head">
+        <p class="eyebrow" data-reveal>COMO FUNCIONA</p>
+        <h2 class="section-title" id="processTitle" data-split>Simples pra você. Insano no resultado.</h2>
+      </div>
+      <ol class="process-list" id="processList"></ol>
+    </section>
+
+    <!-- chamada final -->
+    <section class="cta-band" data-screen="topo" aria-labelledby="ctaTitle">
+      <div class="cta-balls" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+      <p class="cta-kicker" data-reveal>Bora fazer o próximo?</p>
+      <h2 class="cta-title" id="ctaTitle" data-split>Seu próximo vídeo merece impacto.</h2>
+      <div class="cta-actions" data-reveal>
+        <a class="btn-mega btn-mega--dark" href="#contato" data-magnet><span>Quero contratar</span></a>
+        <a class="btn-line btn-line--dark" href="#catalogo" data-magnet><span>Explorar catálogo</span></a>
+      </div>
+    </section>
+
+    <!-- ======================= TELA: TRABALHOS ======================= -->
+    <section class="works" id="trabalhos" data-screen="trabalhos">
       <header class="works-head">
-        <h2 class="mega-title glitch" data-text="TRABALHOS">TRABALHOS</h2>
+        <div>
+          <p class="eyebrow" data-reveal>PORTFÓLIO</p>
+          <h2 class="mega-title glitch" data-text="TRABALHOS">TRABALHOS</h2>
+          <p class="works-lead" data-reveal>Passe o mouse no vídeo para navegar pela timeline. Clique em Assistir para ver com som.</p>
+        </div>
         <div class="works-side">
           <span class="works-count" id="worksCount"></span>
-          <div class="filters" id="filters" role="tablist" aria-label="Filtrar por cliente"></div>
+          <div class="filters" id="filters" role="tablist" aria-label="Filtrar por coleção"></div>
         </div>
       </header>
       <div class="stack" id="stack"></div>
     </section>
 
-    <section class="catalog-screen" id="catalogo" hidden>
+    <!-- ======================= TELA: CATÁLOGO ======================= -->
+    <section class="catalog-screen" id="catalogo" data-screen="catalogo" hidden>
       <aside class="catalog-sidebar" aria-label="Navegação do catálogo"><a href="#topo">⌂ <span>Início</span></a><a href="#catalogo" aria-current="page">▷ <span>Edições</span></a><a href="#clientes">▦ <span>Coleções</span></a><a href="#contato">↗ <span>Contato</span></a><p>COLEÇÕES</p><div id="catalogSidebarCollections"></div></aside>
       <div class="catalog-main"><header class="catalog-head">
         <p class="eyebrow">BIBLIOTECA DE VÍDEOS</p>
@@ -115,33 +187,50 @@
       </div>
     </section>
 
-    <!-- CLIENTES: letreiro -->
-    <section class="clients" id="clientes">
-      <h2 class="mega-title glitch" data-text="COLEÇÕES">COLEÇÕES</h2>
+    <!-- ======================= TELA: COLEÇÕES ======================= -->
+    <section class="clients" id="clientes" data-screen="clientes">
+      <div class="clients-head">
+        <p class="eyebrow" data-reveal>COLEÇÕES</p>
+        <h2 class="mega-title glitch" data-text="COLEÇÕES">COLEÇÕES</h2>
+        <p class="clients-hint" id="clientsHint" data-reveal>Escolha uma coleção para explorar os trabalhos.</p>
+      </div>
       <div class="marquee" id="marquee">
         <div class="marquee-track" id="marqueeTrack"></div>
       </div>
-      <p class="clients-hint" id="clientsHint">Escolha uma coleção para explorar os trabalhos.</p>
-      <div id="collectionCards" hidden></div>
+      <div class="collection-cards" id="collectionCards"></div>
       <div class="peek" id="peek" aria-hidden="true"></div>
     </section>
 
-    <!-- CONTATO -->
-    <section class="contact" id="contato">
+    <!-- ======================= TELA: CONTATO ======================= -->
+    <section class="contact" id="contato" data-screen="contato">
       <div class="contact-bg" id="contactBg"></div>
+      <div class="contact-balls" aria-hidden="true"><i></i><i></i><i></i></div>
       <p class="contact-kicker">Tem um projeto parado na pasta?</p>
       <h2 class="contact-title" id="contactTitle" aria-label="Bora editar?">
         <span class="line">BORA</span>
         <span class="line">EDITAR?</span>
       </h2>
-      <ul class="contact-links" id="contactLinks" data-contact-links></ul>
+      <div class="contact-grid">
+        <div>
+          <p class="contact-label">Me chama por aqui</p>
+          <ul class="contact-links" id="contactLinks" data-contact-links></ul>
+        </div>
+        <div class="contact-brief">
+          <p class="contact-label">Pra agilizar, me manda</p>
+          <ol>
+            <li><b>01</b>A música ou o vídeo que vai ser editado</li>
+            <li><b>02</b>Referências de estilo que você curte</li>
+            <li><b>03</b>Onde vai postar e para quando precisa</li>
+          </ol>
+        </div>
+      </div>
     </section>
   </main>
 
   <footer class="site-footer" id="rodape">
     <div class="sf-top">
       <div class="sf-cta">
-        <p class="sf-kicker">Tem um projeto parado na pasta? Bora tirar do papel.</p>
+        <p class="sf-kicker" data-split>Tem um projeto parado na pasta? Bora tirar do papel.</p>
         <a class="btn-mega" id="footerCta" href="#contato" data-magnet><span>Entrar em contato</span></a>
       </div>
       <ul class="sf-links" data-contact-links></ul>
@@ -150,7 +239,7 @@
     <div class="sf-bottom">
       <span>© <span id="year"></span> <span id="footName">Zalen</span> · Editor de vídeo</span>
       <span>Vídeos e créditos dos respectivos autores.</span>
-      <a href="#topo">Voltar ao topo ↑</a>
+      <button type="button" class="sf-up" data-scroll-top>Voltar ao topo ↑</button>
     </div>
   </footer>
 
@@ -205,5 +294,6 @@
   <script src="script.js"></script>
   <script src="previews.js"></script>
   <script src="transitions.js"></script>
+  <script src="motion.js"></script>
 </body>
 </html>

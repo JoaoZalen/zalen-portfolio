@@ -102,3 +102,16 @@ ordenação e opção Tabela. Use Início para voltar à apresentação.
 As duas visões usam os mesmos 45 trabalhos e o mesmo player.
 Validação: testes DOM de busca, filtros, ordenação e rotas; aparência
 e reprodução externa precisam de verificação em navegador.
+
+
+TELAS E TELA INICIAL (07/10/2026)
+O site agora tem telas separadas: Início, Trabalhos, Catálogo, Coleções e
+Contato. A troca entre elas usa a transição com bolas.
+Os textos da tela inicial ficam no perfil.js:
+  chamada         → frase grande do topo
+  servicos        → cards "O que eu faço" (colecao = pasta que abre no catálogo)
+  especialidades  → palavras da faixa vermelha animada
+  processo        → passos de "Como funciona"
+Os números (edições, comissões, reedits, projetos) são contados sozinhos a
+partir das pastas, então sobem quando você cadastra trabalhos novos.
+Os destaques são a edição com destaque: true + a primeira de cada coleção.
