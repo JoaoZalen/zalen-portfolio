@@ -228,29 +228,99 @@ function renderPerfil() {
   $("#footName").textContent = nome;
   $("#year").textContent = new Date().getFullYear();
 
-  const c = p.contato || {};
-  const zap = String(c.whatsapp || "").replace(/\D/g, "");
-  const links = [
-    c.email && { rotulo: c.email, url: `mailto:${c.email}` },
-    zap && { rotulo: "WhatsApp", url: `https://wa.me/${zap}` },
-    c.instagram && { rotulo: "Instagram", url: c.instagram },
-    c.youtube && { rotulo: "YouTube", url: c.youtube },
-    c.twitter && { rotulo: "Twitter / X", url: c.twitter },
-    c.tiktok && { rotulo: "TikTok", url: c.tiktok },
-    c.discord && { rotulo: "Discord", url: c.discord }
-  ].filter(Boolean);
-  const html = links.length
-    ? links.map((l) => `<li><a href="${esc(l.url)}" data-magnet ${l.url.startsWith("mailto:") ? "" : 'target="_blank" rel="noopener"'}>${esc(l.rotulo)}</a></li>`).join("")
+  const contatos = montarContatos(p.contato || {});
+  const html = contatos.length
+    ? contatos.map(contatoHTML).join("")
     : `<li class="contact-empty">Contatos em breve</li>`;
   $$("[data-contact-links]").forEach((ul) => { ul.innerHTML = html; });
-  // o botão do rodapé vai direto para o primeiro contato (e-mail ou WhatsApp)
-  const direto = links[0];
+  // o botão do rodapé vai direto para o primeiro contato que abre (e-mail ou WhatsApp)
+  const direto = contatos.find((k) => k.url && (k.tipo === "email" || k.tipo === "whatsapp"));
   if (direto) {
     const cta = $("#footerCta");
     cta.href = direto.url;
-    if (!direto.url.startsWith("mailto:")) { cta.target = "_blank"; cta.rel = "noopener"; }
+    if (direto.tipo !== "email") { cta.target = "_blank"; cta.rel = "noopener"; }
   }
 }
+
+/* ---------- Contatos: ícone + rótulo + valor + ação ---------- */
+const ICONES = {
+  email: '<rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3.5 6.5 12 13l8.5-6.5"/>',
+  whatsapp: '<path d="M3.5 20.5l1.3-4A8.5 8.5 0 1 1 8 19.3z"/><path d="M9 8.6c0 3.4 2.9 6.4 6.4 6.4l1.2-1.6-2-1-1 1a4.7 4.7 0 0 1-2.9-2.9l1-1-1-2z"/>',
+  instagram: '<rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.3" cy="6.7" r=".6" fill="currentColor"/>',
+  youtube: '<rect x="2.5" y="5.5" width="19" height="13" rx="4"/><path d="M10.5 9.3v5.4l4.6-2.7z" fill="currentColor"/>',
+  twitter: '<path d="M4 4h4.6L20 20h-4.6z"/><path d="M19.6 4 13.4 11M10.6 13 4.4 20"/>',
+  tiktok: '<path d="M14 3.5v11a3.8 3.8 0 1 1-3.8-3.8"/><path d="M14 3.5c.6 2.6 2.6 4.5 5.2 4.7"/>',
+  discord: '<path d="M8.2 6.6A14 14 0 0 1 12 6c1.3 0 2.6.2 3.8.6l.6-1.1a12.5 12.5 0 0 1 3.4 1.2c1.9 2.8 2.7 5.8 2.5 9a12 12 0 0 1-3.9 2l-.9-1.5M8.2 6.6l-.6-1.1a12.5 12.5 0 0 0-3.4 1.2C2.3 9.5 1.5 12.5 1.7 15.7a12 12 0 0 0 3.9 2l.9-1.5M6.5 16.2a11 11 0 0 0 11 0"/><circle cx="9" cy="12" r="1.3" fill="currentColor"/><circle cx="15" cy="12" r="1.3" fill="currentColor"/>'
+};
+const icone = (tipo) => `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${ICONES[tipo]}</svg>`;
+
+/* aceita link completo ou só o @ do perfil */
+function perfilSocial(valor, base) {
+  const v = String(valor).trim();
+  if (/^https?:\/\//i.test(v)) {
+    const ultimo = v.replace(/\/+$/, "").split("/").pop().replace(/^@/, "");
+    return { url: v, valor: "@" + ultimo };
+  }
+  const nome = v.replace(/^@/, "");
+  return { url: base + nome, valor: "@" + nome };
+}
+
+function montarContatos(c) {
+  const lista = [];
+  if (c.email) lista.push({ tipo: "email", rotulo: "E-mail", valor: c.email.trim(), url: `mailto:${c.email.trim()}` });
+  const zap = String(c.whatsapp || "").replace(/\D/g, "");
+  if (zap) {
+    // 5511999999999 → +55 11 99999-9999
+    const m = zap.match(/^(\d{2})(\d{2})(\d{4,5})(\d{4})$/);
+    lista.push({ tipo: "whatsapp", rotulo: "WhatsApp", valor: m ? `+${m[1]} ${m[2]} ${m[3]}-${m[4]}` : `+${zap}`, url: `https://wa.me/${zap}` });
+  }
+  if (c.instagram) lista.push({ tipo: "instagram", rotulo: "Instagram", ...perfilSocial(c.instagram, "https://instagram.com/") });
+  if (c.youtube) lista.push({ tipo: "youtube", rotulo: "YouTube", ...perfilSocial(c.youtube, "https://youtube.com/@") });
+  if (c.twitter) lista.push({ tipo: "twitter", rotulo: "X / Twitter", ...perfilSocial(c.twitter, "https://x.com/") });
+  if (c.tiktok) lista.push({ tipo: "tiktok", rotulo: "TikTok", ...perfilSocial(c.tiktok, "https://tiktok.com/@") });
+  // Discord não tem link: o nome de usuário é copiado ao clicar
+  if (c.discord) lista.push({ tipo: "discord", rotulo: "Discord", valor: String(c.discord).trim(), copiar: true });
+  return lista;
+}
+
+function contatoHTML(k) {
+  const miolo = `
+    <span class="ci-icon">${icone(k.tipo)}</span>
+    <span class="ci-text"><small>${esc(k.rotulo)}</small><b>${esc(k.valor)}</b></span>
+    <span class="ci-action" aria-hidden="true">${k.copiar ? "Copiar" : "↗"}</span>`;
+  if (k.copiar) {
+    return `<li class="contact-item contact-item--${k.tipo}"><button type="button" class="ci" data-copy="${esc(k.valor)}" aria-label="Copiar ${esc(k.rotulo)}: ${esc(k.valor)}">${miolo}</button></li>`;
+  }
+  const externo = k.tipo === "email" ? "" : ' target="_blank" rel="noopener"';
+  return `<li class="contact-item contact-item--${k.tipo}"><a class="ci" href="${esc(k.url)}"${externo} aria-label="${esc(k.rotulo)}: ${esc(k.valor)}">${miolo}</a></li>`;
+}
+
+async function copiarTexto(texto) {
+  try { await navigator.clipboard.writeText(texto); return true; } catch (_) { /* tenta o jeito antigo */ }
+  const area = document.createElement("textarea");
+  area.value = texto;
+  area.setAttribute("readonly", "");
+  area.style.cssText = "position:fixed;opacity:0;pointer-events:none";
+  document.body.appendChild(area);
+  area.select();
+  let ok = false;
+  try { ok = document.execCommand("copy"); } catch (_) { ok = false; }
+  area.remove();
+  return ok;
+}
+
+document.addEventListener("click", async (e) => {
+  const b = e.target.closest("[data-copy]");
+  if (!b) return;
+  e.preventDefault();
+  const ok = await copiarTexto(b.dataset.copy);
+  const acao = $(".ci-action", b);
+  b.classList.toggle("is-copied", ok);
+  acao.textContent = ok ? "Copiado ✓" : "Selecione";
+  if (!ok) { const r = document.createRange(); r.selectNodeContents($(".ci-text b", b)); getSelection().removeAllRanges(); getSelection().addRange(r); }
+  clearTimeout(b._t);
+  b._t = setTimeout(() => { b.classList.remove("is-copied"); acao.textContent = "Copiar"; }, 1800);
+});
 
 /* =========================================================
    TELA INICIAL · faixa, números, serviços, destaques, processo
