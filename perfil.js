@@ -16,13 +16,13 @@ perfil({
   // Eles aparecem no rodapé de todas as telas, no player e na tela Contato.
   // O botão "Contato" do rodapé usa o e-mail (ou o WhatsApp, se não tiver e-mail).
   contato: {
-    email: "",            // ex: "zalen@gmail.com"
+    email: "zaleneditor@gmail.com",            // ex: "zalen@gmail.com"
     whatsapp: "",         // ex: "5511999999999" (com DDI e DDD, só números)
-    youtube: "",          // ex: "https://youtube.com/@zalen"
-    twitter: "",
-    instagram: "",
-    tiktok: "",
-    discord: ""
+    youtube: "https://www.youtube.com/@zalen_editor",         
+    twitter: "https://x.com/Zalen_Editor",
+    instagram: "https://www.instagram.com/zaleneditor",
+    tiktok: "https://www.tiktok.com/@zalen.editor",
+    discord: "zalenedit"
   },
 
   // Cards "O que eu faço" da tela inicial.
