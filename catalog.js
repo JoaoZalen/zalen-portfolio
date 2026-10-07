@@ -1,6 +1,9 @@
 /* Telas independentes com navegação pelo histórico do navegador. */
 const catalogo = { modo:'cards', visiveis:[] };
 const normalizarBusca = texto => texto.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+const atualizarMotion = (raiz = document) => {
+  if (window.motionScan) requestAnimationFrame(() => window.motionScan(raiz));
+};
 function montarCatalogo() {
   const select = document.getElementById('editionCollection');
   estado.clientes.forEach(c => select.add(new Option(c.nome,c.id)));
@@ -40,9 +43,10 @@ function renderCatalogo() {
   const picture=ed=>`<img src="${esc(ed.capa)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">`;
   const label=ed=>esc('Prévia de '+ed.titulo);
   const result=document.getElementById('catalogResults');
-  if(!list.length){result.innerHTML='';return;}
+  if(!list.length){result.innerHTML='';atualizarMotion(document.getElementById('catalogo'));return;}
   if(catalogo.modo==='tabela')result.innerHTML=`<div class="edition-table-wrap"><table class="edition-table"><caption class="sr-only">Edições do portfólio com miniaturas e acesso à prévia</caption><thead><tr><th scope="col">Preview</th><th scope="col">Edição</th><th scope="col">Coleção</th><th scope="col">Formato</th><th scope="col"><span class="sr-only">Ação</span></th></tr></thead><tbody>${list.map(({ed,i})=>`<tr><td><button class="thumb-button" data-preview="${i}" aria-label="${label(ed)}">${picture(ed)}<span aria-hidden="true">▶</span></button></td><td><button class="title-button" data-preview="${i}">${esc(ed.titulo)}</button></td><td>${esc(ed.cliente.nome)}</td><td><span class="format-pill">${esc(ed.tipo||'Edição')}</span></td><td><button class="preview-button" data-preview="${i}" aria-label="${label(ed)}">Assistir ↗</button></td></tr>`).join('')}</tbody></table></div>`;
   else result.innerHTML=`<div class="edition-cards">${list.map(({ed,i})=>`<button class="edition-card" data-preview="${i}" aria-label="${label(ed)}"><div class="card-cover">${picture(ed)}<span aria-hidden="true">▶</span></div><div class="card-copy"><small>${esc(ed.cliente.nome)} · ${esc(ed.tipo||'Edição')}</small><h2>${esc(ed.titulo)}</h2><span>Assistir ↗</span></div></button>`).join('')}</div>`;
+  atualizarMotion(result);
 }
 function selecionarColecao(id,evento){
   const aplicar=()=>{document.getElementById('editionCollection').value=id;document.getElementById('editionSearch').value='';renderCatalogo();};
@@ -64,7 +68,7 @@ function inicializarTelas(){
     document.title=tela==='topo'?`${nome} · ${estado.perfil.funcao||'Editor de vídeo'}`:`${TELAS[tela]} · ${nome}`;
     window.scrollTo({top:0,behavior:'instant'});
     if(tela!=='topo')document.getElementById('heroVideo').pause();
-    requestAnimationFrame(()=>{calcularOrigem();renderLetreiro();});
+    requestAnimationFrame(()=>{calcularOrigem();renderLetreiro();atualizarMotion(document.querySelector(`[data-screen="${tela}"]`) || document);});
     window.dispatchEvent(new CustomEvent('telachange',{detail:tela}));
   }
   window.addEventListener('hashchange',mostrar);mostrar();
