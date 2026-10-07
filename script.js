@@ -345,9 +345,13 @@ function renderPaineis() {
         <div class="panel-media" data-cursor="Play">
           ${ed.youtubeId ? "" : `<video src="${esc(ed.video)}" muted playsinline preload="metadata"></video>`}
           <img class="panel-poster" src="${esc(ed.capa)}" alt="" loading="lazy" onerror="this.remove()">
-          <div class="panel-scrub"></div>
-          <div class="panel-progress"></div>
           <span class="panel-dur" hidden><i></i><b></b></span>
+          <div class="panel-timeline" aria-hidden="true">
+            <div class="tl-ruler"></div>
+            <div class="tl-track"><i class="tl-fill"></i></div>
+            <div class="tl-head"><b>00:00:00:00</b></div>
+            <span class="tl-hint">Passe ou arraste ↔</span>
+          </div>
         </div>
         <div class="panel-info">
           <div class="panel-client">${avatarHTML(ed.cliente)}<span>${esc(ed.cliente.nome)}${ed.data ? `, ${esc(ed.data)}` : ""}</span></div>
@@ -384,17 +388,16 @@ function prepararPainel(panel) {
   const ed = estado.edicoes[i];
   const media = $(".panel-media", panel);
   const video = $("video", media);
-  const scrub = $(".panel-scrub", media);
+  const timeline = $(".panel-timeline", media);
+  const cabecaTc = $(".tl-head b", media);
   const dur = $(".panel-dur", media);
   const titulo = $(".panel-title", panel);
 
-  let pronto = false, duracao = 0, yt = null, ytReady = null, arrastando = false, ultimoSeek = 0;
+  let pronto = false, duracao = 0, yt = null, ytReady = null, arrastando = false, ultimoSeek = 0, posTeclado = 0;
 
   function atualizarUI(p, t) {
-    const x = p * media.getBoundingClientRect().width;
-    scrub.style.transform = `translateX(${x}px)`;
-    media.style.setProperty("--p", p);
-    $("b", dur).textContent = timecode(t);
+    timeline.style.setProperty("--p", p.toFixed(4));
+    cabecaTc.textContent = timecode(t);
     cursorLabel(timecode(t));
   }
 
@@ -441,6 +444,8 @@ function prepararPainel(panel) {
           }
         }
       });
+      // A API troca o div pelo iframe: devolve a classe já, antes do onReady.
+      document.getElementById(holder.id)?.classList.add("panel-youtube");
     }));
     return ytReady;
   }
@@ -453,7 +458,7 @@ function prepararPainel(panel) {
   $(".btn-mega", panel).addEventListener("click", () => abrirPlayer(i));
   media.setAttribute("role", "img");
   media.tabIndex = 0;
-  media.setAttribute("aria-label", "Prévia arrastável de " + ed.titulo);
+  media.setAttribute("aria-label", `Prévia de ${ed.titulo}. Use as setas para avançar e Enter para assistir.`);
 
   // glitch rápido quando o painel entra na tela
   new IntersectionObserver(([en]) => {
@@ -464,10 +469,14 @@ function prepararPainel(panel) {
   }, { threshold: .6 }).observe(titulo);
 
   async function aplicarPonteiro(e, final = false) {
+    const r = media.getBoundingClientRect();
+    await irPara(clamp((e.clientX - r.left) / r.width), final);
+  }
+
+  async function irPara(p, final = false) {
     if (ed.youtubeId) await prepararYoutubePainel();
     if (!pronto || !duracao) return;
-    const r = media.getBoundingClientRect();
-    const p = clamp((e.clientX - r.left) / r.width);
+    posTeclado = p;
     const t = p * duracao;
     panel.classList.add("is-skimming");
     atualizarUI(p, t);
@@ -508,12 +517,19 @@ function prepararPainel(panel) {
   });
   media.addEventListener("click", (e) => { e.preventDefault(); e.stopImmediatePropagation(); }, true);
   if (temHover) media.addEventListener("pointerenter", (e) => { aplicarPonteiro(e); });
-  media.addEventListener("pointerleave", () => {
-    if (arrastando) return;
+  function sairDoScrub() {
     panel.classList.remove("is-skimming");
-    media.style.setProperty("--p", 0);
     cursorLabel("");
+  }
+  media.addEventListener("pointerleave", () => { if (!arrastando) sairDoScrub(); });
+  media.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abrirPlayer(i, posTeclado * duracao); return; }
+    const passoTecla = { ArrowRight: .05, ArrowLeft: -.05, Home: -1, End: 1 }[e.key];
+    if (passoTecla == null) return;
+    e.preventDefault();
+    irPara(clamp(posTeclado + passoTecla), true);
   });
+  media.addEventListener("blur", sairDoScrub);
 }
 
 function atualizarPaineis() {
