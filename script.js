@@ -507,7 +507,7 @@ function prepararPainel(panel) {
     if (media.hasPointerCapture(e.pointerId)) media.releasePointerCapture(e.pointerId);
   });
   media.addEventListener("click", (e) => { e.preventDefault(); e.stopImmediatePropagation(); }, true);
-  if (temHover) media.addEventListener("pointerenter", () => { if (ed.youtubeId) prepararYoutubePainel(); });
+  if (temHover) media.addEventListener("pointerenter", (e) => { aplicarPonteiro(e); });
   media.addEventListener("pointerleave", () => {
     if (arrastando) return;
     panel.classList.remove("is-skimming");
