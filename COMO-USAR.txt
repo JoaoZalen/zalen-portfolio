@@ -1,0 +1,104 @@
+=====================================================
+  PORTFÓLIO ZALEN — COMO USAR
+=====================================================
+
+PUBLICAR NO GITHUB PAGES
+  1. Extraia o ZIP e entre na pasta zalen.
+  2. Envie o CONTEÚDO dessa pasta para a raiz do repositório:
+     index.html, script.js, style.css, background.js, catalog.js,
+     perfil.js, clientes/, assets/ e .nojekyll.
+  3. GitHub > Settings > Pages > Deploy from a branch.
+  4. Selecione main e / (root), depois Save.
+  5. Aguarde a publicação e abra a URL HTTPS informada pelo GitHub.
+  6. Recarregue com Ctrl+F5 depois de atualizar os arquivos.
+
+  O site é estático: não precisa de Node.js, PHP ou servidor próprio.
+  Abrir o index.html diretamente (file://) pode causar erro 153 do YouTube.
+  Para testes no computador, use o Live Server do VS Code.
+
+ESTRUTURA
+  perfil.js                  → seu nome, bio e contatos
+  clientes/lista.js          → lista das pastas de clientes
+  clientes/7mz/
+      info.js                → nome, tipo e descrição do cliente
+      foto.jpg               → foto do cliente (opcional)
+      edicoes/
+          capitao-patria/
+              info.js        → título, tipo, descrição e tags
+              video.mp4      → o vídeo da edição
+              preview.jpg    → a capa (opcional)
+
+ADICIONAR UMA EDIÇÃO
+  1. Copie a pasta clientes/7mz/edicoes/capitao-patria
+  2. Renomeie a cópia (ex: "intro-live"). Sem espaços nem acentos.
+  3. Troque o video.mp4 e o preview.jpg
+  4. Edite o info.js da pasta nova
+  5. Em clientes/7mz/info.js, adicione o nome da pasta na lista:
+       edicoes: [
+         "capitao-patria",
+         "intro-live"
+       ]
+  6. Atualize o navegador (F5)
+
+ADICIONAR UM CLIENTE
+  1. Copie a pasta clientes/7mz e renomeie (ex: "fulano")
+  2. Edite clientes/fulano/info.js e as edições dentro dela
+  3. Em clientes/lista.js, adicione o nome:
+       listaClientes([
+         "7mz",
+         "fulano"
+       ]);
+  4. Atualize o navegador (F5)
+
+SHOWREEL DO TOPO
+  O vídeo que roda no topo do site é a edição marcada com
+  destaque: true no info.js. Ela também aparece grande na grade.
+  Deixe destaque: true em só uma edição.
+
+DICAS
+  • Edite os info.js no Bloco de Notas ou VS Code.
+  • Mude só o texto entre aspas. Mantenha as vírgulas no fim das linhas.
+  • Se algo estiver errado num arquivo, o site mostra um aviso
+    embaixo dizendo qual arquivo e qual linha conferir.
+  • Sem preview.jpg, o site usa um frame do próprio vídeo.
+  • Sem foto.jpg, aparecem as iniciais do cliente.
+  • Para colocar online de graça: arraste a pasta inteira no
+    Netlify Drop (app.netlify.com/drop) ou use GitHub Pages.
+
+
+YOUTUBE — IMPORTAÇÃO EM 06/10/2026
+Foram cadastrados os 43 vídeos públicos da aba Vídeos e 1 transmissão da aba Ao vivo.
+O trabalho local Capitão Pátria permanece no topo e na coleção 7mz.
+Comissões, Reedits, Projetos e Transmissões são coleções, não clientes confirmados.
+Não foram presumidos contratantes ou datas exatas a partir dos títulos.
+
+Para adicionar um vídeo: crie a pasta da edição, adicione seu nome à lista
+edicoes no info.js da coleção e use:
+edicao({ titulo: "Meu trabalho", tipo: "MMV", tags: [], youtube: "ID_DE_11_CARACTERES", destaque: false });
+Use apenas o ID que vem após v= no link do YouTube.
+Vídeos do YouTube usam a capa online e o player incorporado no modal.
+O scrub de frames continua disponível somente para vídeos MP4 locais.
+Mantenha o destaque em um vídeo local para preservar o fundo animado do topo.
+Não é sincronização automática: futuros uploads precisam ser cadastrados.
+Reprodução depende de internet, incorporação permitida e disponibilidade do vídeo.
+Abra com um servidor HTTP local (ex.: Live Server) ou hospedagem HTTPS para
+enviar a identificação de origem exigida pelo player do YouTube.
+Se houver bloqueio, use o link Abrir no YouTube no player.
+
+FUNDO ANIMADO
+Trechos aleatórios dos vídeos do YouTube sem áudio, com blur e contraste baixo.
+Transmissões longas não entram no sorteio. Carrega só um player de fundo.
+Se o YouTube não carregar, usa trechos aleatórios do MP4 local.
+Pausa ao abrir o player de trabalhos ou ocultar a aba.
+Respeita a preferência do sistema de reduzir movimento.
+Ajuste blur e opacidade no bloco Fundo ambiente do style.css.
+O vídeo principal do topo permanece como antes.
+
+HOME + CATÁLOGO
+A página inicial mantém a rolagem contínua, zoom nas letras, trabalhos
+empilhados, coleções e contato. O botão Catálogo abre a visão extra
+#catalogo, inspirada no YouTube, com grade de miniaturas, busca, filtros,
+ordenação e opção Tabela. Use Início para voltar à apresentação.
+As duas visões usam os mesmos 45 trabalhos e o mesmo player.
+Validação: testes DOM de busca, filtros, ordenação e rotas; aparência
+e reprodução externa precisam de verificação em navegador.

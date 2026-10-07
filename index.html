@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Zalen · Editor de vídeo</title>
+  <meta name="description" content="Portfólio de edição de vídeo.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23000'/><text x='50' y='78' font-size='78' text-anchor='middle' font-family='Impact' fill='%23ff2a1f'>Z</text></svg>">
+  <link rel="preload" href="assets/fonts/anton.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="is-loading">
+  <div id="localNotice" class="local-notice" hidden>Abra o endereço publicado no GitHub Pages para reproduzir os vídeos do YouTube. Para testar no computador, use o Live Server.</div>
+  <div class="motion-bg" id="motionBg" aria-hidden="true">
+    <video id="motionFallback" muted playsinline preload="metadata" tabindex="-1"></video>
+    <div class="motion-youtube" id="motionYoutube"></div>
+    <div class="motion-shade"></div>
+  </div>
+  <a class="skip" href="#trabalhos">Pular para os trabalhos</a>
+
+  <!-- camadas de textura -->
+  <div class="grain" aria-hidden="true"></div>
+  <div class="scan" aria-hidden="true"></div>
+
+  <!-- cursor de câmera -->
+  <div class="cursor" id="cursor" aria-hidden="true">
+    <div class="cursor-ring" id="cursorRing"><span id="cursorText"></span></div>
+    <div class="cursor-dot" id="cursorDot"></div>
+  </div>
+
+  <!-- loader -->
+  <div class="loader" id="loader" aria-hidden="true">
+    <div class="loader-top">
+      <span class="loader-rec"><i></i>REC</span>
+      <span class="loader-tc" id="loaderTc">00:00:00:00</span>
+    </div>
+    <div class="loader-num" id="loaderNum">000</div>
+    <div class="loader-bar"><i id="loaderBar"></i></div>
+    <div class="loader-panel loader-panel--a"></div>
+    <div class="loader-panel loader-panel--b"></div>
+  </div>
+
+  <header class="nav" id="nav">
+    <a href="#topo" class="nav-logo" id="navLogo" data-magnet>ZALEN</a>
+    <nav class="nav-links" aria-label="Seções">
+      <a href="#topo" data-magnet>Início</a>
+      <a href="#trabalhos" data-magnet>Trabalhos</a>
+      <a href="#catalogo" data-magnet>Catálogo</a>
+      <a href="#clientes" data-magnet>Coleções</a>
+      <a href="#contato" data-magnet>Contato</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="home-shortcut"><a href="#catalogo">Abrir catálogo de edições ↗</a></div>
+    <!-- HERO: vídeo dentro das letras, zoom no scroll -->
+    <section class="zoom" id="topo">
+      <div class="zoom-stage">
+        <video class="zoom-video" id="heroVideo" muted playsinline loop preload="auto"></video>
+        <div class="zoom-mask" id="zoomMask"><span class="zoom-word" id="zoomWord">ZALEN</span></div>
+
+        <div class="hud" aria-hidden="true">
+          <i class="hud-c hud-c--tl"></i><i class="hud-c hud-c--tr"></i>
+          <i class="hud-c hud-c--bl"></i><i class="hud-c hud-c--br"></i>
+          <span class="hud-rec"><i></i>REC</span>
+          <span class="hud-tc" id="hudTc">00:00:00:00</span>
+          <span class="hud-info" id="hudInfo">1920×1080 · 30 FPS</span>
+        </div>
+
+        <div class="zoom-over" id="zoomOver">
+          <p class="zoom-role" id="heroRole">Editor de vídeo</p>
+          <p class="zoom-bio" id="heroBio"></p>
+          <button class="btn-mega" id="heroPlay" data-magnet data-cursor="Play">
+            <span>Assistir com som</span>
+          </button>
+        </div>
+
+        <div class="zoom-hint" id="zoomHint">
+          <span>Role para entrar</span>
+          <i></i>
+        </div>
+      </div>
+    </section>
+
+    <!-- TRABALHOS: painéis empilhados -->
+        <section class="works" id="trabalhos">
+      <header class="works-head">
+        <h2 class="mega-title glitch" data-text="TRABALHOS">TRABALHOS</h2>
+        <div class="works-side">
+          <span class="works-count" id="worksCount"></span>
+          <div class="filters" id="filters" role="tablist" aria-label="Filtrar por cliente"></div>
+        </div>
+      </header>
+      <div class="stack" id="stack"></div>
+    </section>
+
+    <section class="catalog-screen" id="catalogo" hidden>
+      <aside class="catalog-sidebar" aria-label="Navegação do catálogo"><a href="#topo">⌂ <span>Início</span></a><a href="#catalogo" aria-current="page">▷ <span>Edições</span></a><a href="#clientes">▦ <span>Coleções</span></a><a href="#contato">↗ <span>Contato</span></a><p>COLEÇÕES</p><div id="catalogSidebarCollections"></div></aside>
+      <div class="catalog-main"><header class="catalog-head">
+        <p class="eyebrow">BIBLIOTECA DE VÍDEOS</p>
+        <h1>Edições</h1>
+        <p>Explore os trabalhos, encontre seu estilo e dê o play.</p>
+      </header>
+      <div class="catalog-tools">
+        <label class="search-field">Buscar edição<input id="editionSearch" type="search" placeholder="Música, personagem ou artista…" autocomplete="off"></label>
+        <label>Coleção<select id="editionCollection"><option value="todos">Todas as coleções</option></select></label>
+        <label>Ordenar<select id="editionSort"><option value="original">Ordem do portfólio</option><option value="az">Título: A–Z</option><option value="za">Título: Z–A</option></select></label>
+      </div>
+      <div id="catalogChips" class="catalog-chips" role="group" aria-label="Coleções"></div>
+      <div class="catalog-bar"><span id="catalogCount" role="status" aria-live="polite"></span><div class="view-switch" role="group" aria-label="Visualização"><button id="tableMode" aria-pressed="true">Tabela</button><button id="cardMode" aria-pressed="false">Cards</button></div><button id="randomEdition" class="catalog-action">Surpreenda-me ↗</button></div>
+      <div id="catalogResults"></div>
+      <div class="catalog-empty" id="catalogEmpty" hidden><h2>Nenhum trabalho encontrado.</h2><p>Tente outro termo ou escolha uma coleção diferente.</p><button id="clearCatalog" class="catalog-action">Limpar filtros</button></div>
+      </div>
+    </section>
+
+    <!-- CLIENTES: letreiro -->
+    <section class="clients" id="clientes">
+      <h2 class="mega-title glitch" data-text="COLEÇÕES">COLEÇÕES</h2>
+      <div class="marquee" id="marquee">
+        <div class="marquee-track" id="marqueeTrack"></div>
+      </div>
+      <p class="clients-hint" id="clientsHint">Escolha uma coleção para explorar os trabalhos.</p>
+      <div id="collectionCards" hidden></div>
+      <div class="peek" id="peek" aria-hidden="true"></div>
+    </section>
+
+    <!-- CONTATO -->
+    <section class="contact" id="contato">
+      <div class="contact-bg" id="contactBg"></div>
+      <p class="contact-kicker">Tem um projeto parado na pasta?</p>
+      <h2 class="contact-title" id="contactTitle" aria-label="Bora editar?">
+        <span class="line">BORA</span>
+        <span class="line">EDITAR?</span>
+      </h2>
+      <ul class="contact-links" id="contactLinks"></ul>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span>© <span id="year"></span> <span id="footName">Zalen</span></span>
+    <span>Portfólio de Zalen · Vídeos e créditos dos respectivos autores.</span>
+  </footer>
+
+  <!-- Player -->
+  <dialog class="player" id="player" aria-labelledby="playerTitle">
+    <div class="player-top">
+      <span class="player-count" id="playerCount"></span>
+      <button class="player-close" id="playerClose" aria-label="Fechar" data-magnet>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5l14 14M19 5L5 19"/></svg>
+      </button>
+    </div>
+    <div class="player-media">
+      <video id="playerVideo" controls playsinline></video>
+      <iframe id="playerYoutube" title="Vídeo do YouTube" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen hidden></iframe>
+      <a id="playerSource" target="_blank" rel="noopener noreferrer" hidden>Abrir no YouTube se o vídeo não reproduzir</a>
+    </div>
+    <div class="player-info">
+      <div>
+        <h3 class="player-title glitch" id="playerTitle" data-text=""></h3>
+        <p class="player-desc" id="playerDesc"></p>
+        <div class="tags" id="playerTags"></div>
+      </div>
+      <dl class="credits" id="playerCredits"></dl>
+    </div>
+    <div class="player-nav">
+      <button class="nav-btn" id="playerPrev"><span>Anterior</span><strong></strong></button>
+      <button class="nav-btn nav-btn--next" id="playerNext"><span>Próximo</span><strong></strong></button>
+    </div>
+  </dialog>
+
+  <div class="error" id="error" role="alert" hidden></div>
+
+  <script src="background.js"></script>
+  <script src="catalog.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
