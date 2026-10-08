@@ -16,7 +16,7 @@ function montarCatalogo() {
   document.getElementById('catalogResults').addEventListener('click',event=>{const b=event.target.closest('[data-preview]');if(b)abrirPlayer(Number(b.dataset.preview));});
   // cards de coleção com mosaico das capas
   document.getElementById('collectionCards').innerHTML=estado.clientes.map((c,k)=>{
-    const capas=c.edicoes.slice(0,3).map(ed=>`<img src="${esc(ed.capa)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">`).join('');
+    const capas=c.edicoes.slice(0,3).map(ed=>capaHTML(ed)).join('');
     return `<button class="collection-card" data-collection="${esc(c.id)}" data-reveal data-tilt style="--d:${k*90}ms"><div class="collection-covers" data-n="${Math.min(3,c.edicoes.length)}">${capas}</div><div class="collection-copy"><strong>${pad(c.edicoes.length)}</strong><span>${esc(c.nome)}</span><small>Explorar ↗</small></div></button>`;
   }).join('');
   document.getElementById('collectionCards').addEventListener('click',event=>{const b=event.target.closest('[data-collection]');if(b)selecionarColecao(b.dataset.collection,event);});
@@ -40,7 +40,7 @@ function renderCatalogo() {
   document.getElementById('randomEdition').disabled=!list.length;
   document.getElementById('tableMode').setAttribute('aria-pressed',catalogo.modo==='tabela');
   document.getElementById('cardMode').setAttribute('aria-pressed',catalogo.modo==='cards');
-  const picture=ed=>`<img src="${esc(ed.capa)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">`;
+  const picture=ed=>capaHTML(ed);
   const label=ed=>esc('Prévia de '+ed.titulo);
   const result=document.getElementById('catalogResults');
   if(!list.length){result.innerHTML='';atualizarMotion(document.getElementById('catalogo'));return;}
@@ -68,7 +68,7 @@ function inicializarTelas(){
     document.title=tela==='topo'?`${nome} · ${estado.perfil.funcao||'Editor de vídeo'}`:`${TELAS[tela]} · ${nome}`;
     window.scrollTo({top:0,behavior:'instant'});
     if(tela!=='topo')document.getElementById('heroVideo').pause();
-    requestAnimationFrame(()=>{calcularOrigem();renderLetreiro();atualizarMotion(document.querySelector(`[data-screen="${tela}"]`) || document);});
+    requestAnimationFrame(()=>{try{calcularOrigem();renderLetreiro();atualizarMotion(document.querySelector(`[data-screen="${tela}"]`) || document);}catch(erro){console.warn('[zalen] troca de tela:',erro);}});
     window.dispatchEvent(new CustomEvent('telachange',{detail:tela}));
   }
   window.addEventListener('hashchange',mostrar);mostrar();

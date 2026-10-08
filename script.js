@@ -47,21 +47,87 @@ function timecode(seg) {
 }
 const duracaoCurta = (seg) => `${Math.floor(seg / 60)}:${pad(Math.round(seg % 60))}`;
 
-/* tenta de novo uma vez: numa internet instável um download pode ser abortado */
+/* ---------- Etapas da inicialização ----------
+   Cada etapa roda isolada: se falhar ou demorar, registra no console
+   e o resto do site segue. */
+const log = (...a) => console.warn("[zalen]", ...a);
+function etapaSync(nome, fn) {
+  try { return fn(); } catch (erro) { log(`etapa "${nome}" falhou:`, erro); }
+}
+function etapa(nome, fn, limiteMs) {
+  let timer;
+  const tempo = new Promise((ok) => { timer = setTimeout(() => { log(`etapa "${nome}" passou de ${limiteMs} ms; seguindo sem esperar.`); ok(); }, limiteMs); });
+  const trabalho = Promise.resolve().then(fn).catch((erro) => { log(`etapa "${nome}" falhou:`, erro); });
+  return Promise.race([trabalho, tempo]).finally(() => clearTimeout(timer));
+}
+
+/* tenta de novo uma vez: numa internet instável um download pode ser abortado
+   ou ficar parado; depois de 4 s sem resposta conta como falha. */
 function carregarScript(src, ctx, tentativa = 1) {
   return new Promise((ok, falha) => {
     const s = document.createElement("script");
-    s.src = src;
-    if (ctx) contextoDoScript.set(s.src, ctx);
-    s.onload = ok;
-    s.onerror = () => {
+    let fim = false;
+    const parado = setTimeout(() => erro(), 4000);
+    function erro() {
+      if (fim) return;
+      fim = true;
+      clearTimeout(parado);
       s.remove();
       if (tentativa < 2) setTimeout(() => carregarScript(src, ctx, tentativa + 1).then(ok, falha), 400);
       else falha(src);
-    };
+    }
+    s.src = src;
+    if (ctx) contextoDoScript.set(s.src, ctx);
+    s.onload = () => { if (fim) return; fim = true; clearTimeout(parado); ok(); };
+    s.onerror = erro;
     document.head.appendChild(s);
   });
 }
+
+/* ---------- YouTube ----------
+   Uma só carga da API para o site todo. Se ela for bloqueada (adblock,
+   Brave, rede da empresa) ou não responder, o site usa o que tem local. */
+const youtube = { api: null, bloqueado: !/^https?:$/.test(location.protocol) };
+window.zalenYoutube = youtube;
+function carregarYoutubeAPI() {
+  if (window.YT && YT.Player) return Promise.resolve();
+  if (youtube.bloqueado) return Promise.reject(new Error("YouTube indisponível"));
+  if (youtube.api) return youtube.api;
+  youtube.api = new Promise((ok, falha) => {
+    const desistir = (motivo) => {
+      youtube.bloqueado = true;
+      document.documentElement.classList.add("no-youtube");
+      window.dispatchEvent(new CustomEvent("zalen:youtube-bloqueado"));
+      falha(new Error(motivo));
+    };
+    const limite = setTimeout(() => desistir("API do YouTube não respondeu"), 8000);
+    const anterior = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => {
+      clearTimeout(limite);
+      try { if (anterior) anterior(); } catch (erro) { log("onYouTubeIframeAPIReady:", erro); }
+      ok();
+    };
+    if (!$('script[src="https://www.youtube.com/iframe_api"]')) {
+      const s = document.createElement("script");
+      s.src = "https://www.youtube.com/iframe_api";
+      s.onerror = () => { clearTimeout(limite); desistir("API do YouTube bloqueada"); };
+      document.head.appendChild(s);
+    }
+  });
+  youtube.api.catch((erro) => log(erro.message + "; usando os arquivos locais."));
+  return youtube.api;
+}
+window.carregarYoutubeAPI = carregarYoutubeAPI;
+
+/* capa do YouTube que não carrega: tenta a preview.jpg local, depois some */
+function capaHTML(ed, classe = "", depois = "this.style.visibility='hidden'") {
+  const reserva = ed.youtubeId ? ed.pasta + (ed.arquivoCapa || "preview.jpg") : "";
+  const erro = reserva
+    ? `if(!this.dataset.reserva){this.dataset.reserva=1;this.src=this.dataset.local;}else{${depois}}`
+    : depois;
+  return `<img${classe ? ` class="${classe}"` : ""} src="${esc(ed.capa)}"${reserva ? ` data-local="${esc(reserva)}"` : ""} alt="" loading="lazy" onerror="${erro}">`;
+}
+window.capaHTML = capaHTML;
 
 const errosLeitura = [];
 window.addEventListener("error", (e) => {
@@ -73,6 +139,7 @@ window.addEventListener("error", (e) => {
 
 function mostrarErro(msg) {
   const el = $("#error");
+  if (!el) return;
   el.innerHTML = msg;
   el.hidden = false;
 }
@@ -126,30 +193,47 @@ async function carregarTudo() {
 /* =========================================================
    LOADER
    ========================================================= */
+/* O loader nunca espera mais que ESPERA_MAX pelo conteúdo e some de vez
+   em FECHA_MAX, mesmo sem requestAnimationFrame (aba em segundo plano). */
+const ESPERA_MAX = 1800, FECHA_MAX = 3500;
 function loader(promessaPronto) {
   const el = $("#loader");
   const num = $("#loaderNum");
   const bar = $("#loaderBar");
   const tc = $("#loaderTc");
+  const t0 = performance.now();
+  let fechado = false, ok;
+  const terminou = new Promise((r) => { ok = r; });
   const fim = () => {
+    if (fechado) return;
+    fechado = true;
     clearTimeout(window.__zalenLoaderFailsafe);
-    el.classList.add("is-gone");
+    if (el) el.classList.add("is-gone");
     document.body.classList.remove("is-loading");
+    ok();
   };
+  setTimeout(fim, FECHA_MAX);
+  if (!el || !num || !bar || !tc) { fim(); return terminou; }
 
-  const liberar = promessaPronto.catch((erro) => {
-    console.warn("Carregamento parcial liberado:", erro);
-  });
+  const liberar = Promise.race([
+    Promise.resolve(promessaPronto).catch((erro) => log("carregamento parcial liberado:", erro)),
+    new Promise((r) => setTimeout(r, ESPERA_MAX))
+  ]);
 
-  if (reduzMovimento) { liberar.then(fim); return liberar; }
+  if (reduzMovimento) { liberar.then(fim); return terminou; }
 
-  return new Promise((ok) => {
-    let alvo = 0, atual = 0, pronto = false;
-    const t0 = performance.now();
-    liberar.then(() => { pronto = true; });
-    setTimeout(() => { pronto = true; }, 12000);
-    const tick = (t) => {
-      const passado = (t - t0) / 1000;
+  let alvo = 0, atual = 0, pronto = false, cortou = false;
+  liberar.then(() => { pronto = true; });
+  const cortar = () => {
+    if (cortou) return;
+    cortou = true;
+    el.classList.add("is-cut", "is-out");
+    setTimeout(fim, 1250);
+  };
+  const tick = (t) => {
+    if (cortou) return;
+    try {
+      const passado = Math.max(0, (t - t0) / 1000);
       // sobe sozinho até 85%, completa quando tudo carregou (mínimo 1,6s)
       alvo = pronto && passado > 1.6 ? 100 : Math.min(85, passado * 60);
       atual = lerp(atual, alvo, .12);
@@ -157,15 +241,14 @@ function loader(promessaPronto) {
       num.textContent = pad(n, 3);
       bar.style.transform = `scaleX(${atual / 100})`;
       tc.textContent = timecode(passado);
-      if (n >= 100) {
-        el.classList.add("is-cut", "is-out");
-        setTimeout(() => { fim(); ok(); }, 1250);
-        return;
-      }
-      requestAnimationFrame(tick);
-    };
+      if (n >= 100) { cortar(); return; }
+    } catch (erro) { log("loader:", erro); cortar(); return; }
     requestAnimationFrame(tick);
-  });
+  };
+  requestAnimationFrame(tick);
+  // sem quadros (aba oculta) o corte acontece pelo relógio
+  setTimeout(cortar, FECHA_MAX - 1250);
+  return terminou;
 }
 
 /* =========================================================
@@ -197,14 +280,36 @@ function iniciarCursor() {
     if (rotulo && !rotulo.matches(".panel-media")) cursorLabel(rotulo.dataset.cursor);
     else if (!e.target.closest(".panel-media")) cursorLabel("");
   });
-  const loop = () => {
+  quadroAQuadro(() => {
     cursor.rx = lerp(cursor.rx, cursor.x, .2);
     cursor.ry = lerp(cursor.ry, cursor.y, .2);
     dot.style.transform = `translate(${cursor.x}px, ${cursor.y}px)`;
     ring.style.transform = `translate(${cursor.rx}px, ${cursor.ry}px)`;
-    requestAnimationFrame(loop);
+  });
+}
+
+/* laço de animação que para com a aba oculta e volta quando ela reaparece */
+function quadroAQuadro(fn) {
+  let id = 0;
+  const frame = (t) => {
+    id = 0;
+    try { fn(t); } catch (erro) { log("animação:", erro); }
+    if (!document.hidden) id = requestAnimationFrame(frame);
   };
-  loop();
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) { cancelAnimationFrame(id); id = 0; }
+    else if (!id) id = requestAnimationFrame(frame);
+  });
+  id = requestAnimationFrame(frame);
+}
+
+/* vídeos decorativos pausam com a aba oculta e voltam se estavam tocando */
+function pausarComAba(video) {
+  let tocava = false;
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) { tocava = !video.paused; video.pause(); }
+    else if (tocava) { tocava = false; video.play().catch(() => {}); }
+  });
 }
 function cursorLabel(txt) {
   const el = $("#cursor");
@@ -216,6 +321,8 @@ function cursorLabel(txt) {
 function iniciarMagnetismo() {
   if (!temHover || reduzMovimento) return;
   $$("[data-magnet]").forEach((el) => {
+    if (el.dataset.magnetDone) return;
+    el.dataset.magnetDone = "1";
     const forca = el.classList.contains("btn-mega") ? .35 : .25;
     el.addEventListener("pointermove", (e) => {
       const r = el.getBoundingClientRect();
@@ -242,7 +349,7 @@ function renderPerfil() {
   const p = estado.perfil;
   const nome = p.nome || "Zalen";
   const funcao = p.funcao || "Editor de vídeo";
-  document.title = `${nome} · ${funcao}`;
+  if (typeof telaAtual !== "function" || telaAtual() === "topo") document.title = `${nome} · ${funcao}`;
   $("#navLogo").textContent = nome.toUpperCase();
   $("#zoomWord").textContent = nome.toUpperCase();
   $$("[data-brand]").forEach((el) => { el.textContent = nome.toUpperCase(); });
@@ -379,10 +486,10 @@ function renderInicio() {
   $(".services").classList.toggle("is-empty", !servicos.length);
   $("#servicesGrid").innerHTML = servicos.map((s, k) => {
     const col = estado.clientes.find((c) => c.id === s.colecao);
-    const capa = col && col.edicoes[0] ? col.edicoes[0].capa : "";
+    const capa = col && col.edicoes[0] ? capaHTML(col.edicoes[0], "service-cover", "this.remove()") : "";
     return `
     <article class="service-card" data-reveal data-tilt style="--d:${k * 110}ms">
-      ${capa ? `<img class="service-cover" src="${esc(capa)}" alt="" loading="lazy" onerror="this.remove()">` : ""}
+      ${capa}
       <span class="service-num">${pad(k + 1)}</span>
       <h3>${esc(s.titulo || "")}</h3>
       <p>${esc(s.texto || "")}</p>
@@ -403,7 +510,7 @@ function renderInicio() {
     const i = estado.edicoes.indexOf(ed);
     return `
     <button class="bento-item" data-preview="${i}" data-reveal data-tilt style="--d:${k * 100}ms" aria-label="Assistir ${esc(ed.titulo)}">
-      <div class="card-cover"><img src="${esc(ed.capa)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'"><span aria-hidden="true">▶</span></div>
+      <div class="card-cover">${capaHTML(ed)}<span aria-hidden="true">▶</span></div>
       <div class="bento-copy">
         <small>${esc(ed.cliente.nome)} · ${esc(ed.tipo || "Edição")}</small>
         <h3>${esc(ed.titulo)}</h3>
@@ -437,7 +544,7 @@ function prepararHero() {
   if (!ed) { $("#heroPlay").hidden = true; return Promise.resolve(); }
 
   video.poster = ed.capa;
-  video.src = ed.video;
+  if (ed.video) video.src = ed.video;
   $("#heroPlay").addEventListener("click", () => abrirPlayer(estado.edicoes.indexOf(ed), video.currentTime));
 
   video.addEventListener("loadedmetadata", () => {
@@ -446,7 +553,8 @@ function prepararHero() {
   video.addEventListener("timeupdate", () => { $("#hudTc").textContent = timecode(video.currentTime); });
   if (!reduzMovimento) video.play().catch(() => {});
 
-  // pausa quando sai da tela
+  // pausa quando sai da tela ou quando a aba fica oculta
+  pausarComAba(video);
   new IntersectionObserver(([en]) => {
     if (reduzMovimento) return;
     en.isIntersecting ? video.play().catch(() => {}) : video.pause();
@@ -543,7 +651,7 @@ function renderPaineis() {
         <span class="panel-num" aria-hidden="true">${pad(i + 1)}</span>
         <div class="panel-media" data-cursor="Play">
           ${ed.youtubeId ? "" : `<video src="${esc(ed.video)}" muted playsinline preload="metadata"></video>`}
-          <img class="panel-poster" src="${esc(ed.capa)}" alt="" loading="lazy" onerror="this.remove()">
+          ${capaHTML(ed, "panel-poster", "this.remove()")}
           <span class="panel-dur" hidden><i></i><b></b></span>
           <div class="panel-timeline" aria-hidden="true">
             <div class="tl-ruler"></div>
@@ -565,22 +673,7 @@ function renderPaineis() {
   $$(".panel", stack).forEach(prepararPainel);
 }
 
-const painelYoutube = { api: null, ativo: null };
-function carregarYoutubeAPI() {
-  if (window.YT && YT.Player) return Promise.resolve();
-  if (painelYoutube.api) return painelYoutube.api;
-  painelYoutube.api = new Promise((ok, falha) => {
-    const anterior = window.onYouTubeIframeAPIReady;
-    window.onYouTubeIframeAPIReady = () => { if (anterior) anterior(); ok(); };
-    if (!$('script[src="https://www.youtube.com/iframe_api"]')) {
-      const s = document.createElement("script");
-      s.src = "https://www.youtube.com/iframe_api";
-      s.onerror = falha;
-      document.head.appendChild(s);
-    }
-  });
-  return painelYoutube.api;
-}
+const painelYoutube = { ativo: null };
 
 function prepararPainel(panel) {
   const i = +panel.dataset.i;
@@ -625,7 +718,8 @@ function prepararPainel(panel) {
     holder.id = `panelYoutube-${i}-${Date.now()}`;
     holder.className = "panel-youtube";
     media.insertBefore(holder, $(".panel-poster", media));
-    ytReady = carregarYoutubeAPI().then(() => new Promise((ok) => {
+    ytReady = carregarYoutubeAPI().then(() => new Promise((ok, falha) => {
+      let tentativas = 0;
       yt = new YT.Player(holder.id, {
         width: "100%", height: "100%",
         videoId: ed.youtubeId,
@@ -638,15 +732,22 @@ function prepararPainel(panel) {
             const tentar = () => {
               const d = yt.getDuration();
               if (d > 0) { habilitar(d); panel.classList.add("is-youtube-ready"); ok(yt); }
-              else setTimeout(tentar, 120);
+              else if (++tentativas < 60) setTimeout(tentar, 120);
+              else falha(new Error("vídeo do YouTube sem duração"));
             };
             tentar();
-          }
+          },
+          onError: () => falha(new Error("o YouTube recusou o vídeo " + ed.youtubeId))
         }
       });
       // A API troca o div pelo iframe: devolve a classe já, antes do onReady.
       document.getElementById(holder.id)?.classList.add("panel-youtube");
     }));
+    // sem YouTube a capa continua no lugar; o painel só não faz o scrub
+    ytReady.catch(() => {
+      document.getElementById(holder.id)?.remove();
+      panel.classList.remove("is-youtube-ready", "is-skimming");
+    });
     return ytReady;
   }
 
@@ -677,7 +778,10 @@ function prepararPainel(panel) {
   }
 
   async function irPara(p, final = false) {
-    if (ed.youtubeId) await prepararYoutubePainel();
+    if (ed.youtubeId) {
+      if (youtube.bloqueado && !yt) return;
+      try { await prepararYoutubePainel(); } catch (_) { return; }
+    }
     if (!pronto || !duracao) return;
     // o player do YouTube pode demorar: ignora se o mouse/foco já saiu
     if (!arrastando && !media.matches(":hover") && document.activeElement !== media) return;
@@ -767,7 +871,8 @@ function filtrar(id) {
 const letreiro = { x: 0, largura: 0, vel: 0, pausado: false };
 
 function renderLetreiro() {
-  if ($("#clientes").hidden) return;
+  if (!estado.pronto || $("#clientes").hidden) return;
+  $("#clientsHint").hidden = true;
   const track = $("#marqueeTrack");
   if (!estado.clientes.length) {
     track.innerHTML = `<span class="mq-item">EM BREVE</span>`;
@@ -850,6 +955,7 @@ function prepararContato() {
       entrada.isIntersecting ? videoFundo.play().catch(() => {}) : videoFundo.pause();
     };
     new IntersectionObserver(sincronizar, { threshold: .2 }).observe($("#contato"));
+    pausarComAba(videoFundo);
   }
   if (!temHover || reduzMovimento) return;
 
@@ -888,6 +994,16 @@ function visiveis() {
   return estado.edicoes.map((ed,i)=>({ed,i})).filter(({ed})=>estado.filtro === "todos" || ed.cliente.id === estado.filtro);
 }
 
+/* existe um video.mp4 na pasta desta edição do YouTube? (pergunta uma vez só) */
+function videoLocal(ed) {
+  if (!ed.pasta) return Promise.resolve("");
+  if (!ed._local) {
+    const src = ed.pasta + (ed.arquivoVideo || "video.mp4");
+    ed._local = fetch(src, { method: "HEAD" }).then((r) => (r.ok ? src : ""), () => "");
+  }
+  return ed._local;
+}
+
 function abrirPlayer(i, inicio = 0) {
   const ed = estado.edicoes[i];
   if (!ed) return;
@@ -902,7 +1018,18 @@ function abrirPlayer(i, inicio = 0) {
   playerVideo.hidden = !!ed.youtubeId;
   playerYoutube.hidden = !ed.youtubeId;
   playerSource.hidden = !ed.youtubeId;
-  if (ed.youtubeId) {
+  if (ed.youtubeId && youtube.bloqueado && /^https?:$/.test(location.protocol)) {
+    // YouTube bloqueado: tenta o video.mp4 da pasta; o link "Abrir no YouTube" continua
+    playerYoutube.hidden = true;
+    playerVideo.hidden = false;
+    playerVideo.poster = ed.capa;
+    playerSource.href = `https://www.youtube.com/watch?v=${ed.youtubeId}`;
+    videoLocal(ed).then((src) => {
+      if (!src || estado.aberta !== i || !player.open) return;
+      playerVideo.src = src;
+      playerVideo.play().catch(() => {});
+    });
+  } else if (ed.youtubeId) {
     if (/^https?:$/.test(location.protocol)) {
       const params = new URLSearchParams({autoplay:"1", playsinline:"1", origin:location.origin, start:String(Math.max(0, Math.floor(inicio)))});
       playerYoutube.src = `https://www.youtube.com/embed/${ed.youtubeId}?${params}`;
@@ -983,23 +1110,25 @@ function fecharPlayer() {
   return fechando;
 }
 window.fecharPlayer = fecharPlayer;
-player.addEventListener("cancel", (e) => { e.preventDefault(); fecharPlayer(); });
-$("#playerClose").addEventListener("click", fecharPlayer);
-$("#playerPrev").addEventListener("click", () => passo(-1));
-$("#playerNext").addEventListener("click", () => passo(1));
-player.addEventListener("close", () => {
-  playerYoutube.removeAttribute("src");
-  playerVideo.pause();
-  playerVideo.removeAttribute("src");
-  playerVideo.load();
-  document.body.style.overflow = "";
-  if (!reduzMovimento && !$("#topo").hidden) $("#heroVideo").play().catch(() => {});
-});
-player.addEventListener("keydown", (e) => {
-  if (e.target === playerVideo) return;
-  if (e.key === "ArrowRight") passo(1);
-  if (e.key === "ArrowLeft") passo(-1);
-});
+function prepararPlayer() {
+  player.addEventListener("cancel", (e) => { e.preventDefault(); fecharPlayer(); });
+  $("#playerClose").addEventListener("click", fecharPlayer);
+  $("#playerPrev").addEventListener("click", () => passo(-1));
+  $("#playerNext").addEventListener("click", () => passo(1));
+  player.addEventListener("close", () => {
+    playerYoutube.removeAttribute("src");
+    playerVideo.pause();
+    playerVideo.removeAttribute("src");
+    playerVideo.load();
+    document.body.style.overflow = "";
+    if (!reduzMovimento && !$("#topo").hidden && !document.hidden) $("#heroVideo").play().catch(() => {});
+  });
+  player.addEventListener("keydown", (e) => {
+    if (e.target === playerVideo) return;
+    if (e.key === "ArrowRight") passo(1);
+    if (e.key === "ArrowLeft") passo(-1);
+  });
+}
 
 /* =========================================================
    NAV + LOOP PRINCIPAL
@@ -1016,44 +1145,61 @@ function prepararNav() {
 
 function loopPrincipal() {
   let ultimoY = scrollY, ultimoT = performance.now();
-  const frame = (t) => {
-    const dt = Math.min(.05, (t - ultimoT) / 1000);
+  quadroAQuadro((t) => {
+    const dt = clamp((t - ultimoT) / 1000, 0, .05);
     const vel = (scrollY - ultimoY) / Math.max(dt, .001) / 10;
     ultimoY = scrollY; ultimoT = t;
     if (!reduzMovimento && !$("#topo").hidden) atualizarHero();
     atualizarPaineis();
     atualizarLetreiro(dt, vel);
-    requestAnimationFrame(frame);
-  };
-  requestAnimationFrame(frame);
+  });
 }
 
 /* =========================================================
    INÍCIO
    ========================================================= */
-(async function iniciar() {
-  document.getElementById("localNotice").hidden = location.protocol !== "file:";
-  iniciarCursor();
-  const pronto = (async () => {
-    await carregarTudo();
-    renderPerfil();
-    iniciarFundo(estado.edicoes);
-    const heroPronto = prepararHero();
-    renderFiltros();
-    renderPaineis();
-    renderInicio();
-    montarCatalogo();
-    if (window.motionScan) motionScan();
-    await Promise.race([document.fonts.ready, new Promise((ok) => setTimeout(ok, 2500))]);
-    renderLetreiro();
-    prepararContato();
-    // A navegação é controlada pelas telas.
-    calcularOrigem();
+/* Ordem: dados (info.js) → telas renderizadas. O loader não depende de
+   nada disso: fecha em no máximo ~3 s e as animações começam de qualquer jeito;
+   se os dados chegarem depois, o conteúdo aparece quando chegar. */
+(function iniciar() {
+  etapaSync("aviso local", () => { $("#localNotice").hidden = location.protocol !== "file:"; });
+  etapaSync("cursor", iniciarCursor);
+  etapaSync("player", prepararPlayer);
+
+  const fontes = etapa("fontes", () => document.fonts && document.fonts.ready, 2500);
+  const conteudo = etapa("leitura dos info.js", carregarTudo, 60000).then(async () => {
+    estado.pronto = true;
+    etapaSync("zalenReady", () => window.__zalenResolveReady && window.__zalenResolveReady(estado));
+    etapaSync("perfil", renderPerfil);
+    if (typeof iniciarFundo === "function") etapaSync("fundo (YouTube)", () => iniciarFundo(estado.edicoes));
+    const heroPronto = etapa("vídeo do hero", prepararHero, 2500);
+    etapaSync("trabalhos", () => { renderFiltros(); renderPaineis(); });
+    etapaSync("início", renderInicio);
+    if (typeof montarCatalogo === "function") etapaSync("catálogo", montarCatalogo);
+    etapaSync("motion", () => window.motionScan && window.motionScan());
+    await fontes;
+    etapaSync("coleções", renderLetreiro);
+    etapaSync("contato", prepararContato);
+    etapaSync("hero", calcularOrigem);
+    etapaSync("magnetismo", iniciarMagnetismo);
     await heroPronto;
-  })();
-  await loader(pronto);
-  iniciarMagnetismo();
-  inicializarTelas();
-  loopPrincipal();
-  addEventListener("resize", () => { calcularOrigem(); renderLetreiro(); });
+  });
+
+  let telasProntas = false;
+  const comecarAnimacoes = () => {
+    if (telasProntas) return;
+    telasProntas = true;
+    etapaSync("magnetismo", iniciarMagnetismo);
+    if (typeof inicializarTelas === "function") etapaSync("telas", inicializarTelas);
+    etapaSync("loop principal", loopPrincipal);
+    let pedido = 0;
+    addEventListener("resize", () => {
+      if (pedido) return;
+      pedido = requestAnimationFrame(() => {
+        pedido = 0;
+        etapaSync("resize", () => { calcularOrigem(); renderLetreiro(); });
+      });
+    });
+  };
+  loader(conteudo).then(comecarAnimacoes, comecarAnimacoes);
 })();
