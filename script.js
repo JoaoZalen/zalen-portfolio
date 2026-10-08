@@ -548,20 +548,27 @@ function prepararHero() {
   if (!ed) { $("#heroPlay").hidden = true; return Promise.resolve(); }
 
   video.poster = ed.capa;
-  if (ed.video) video.src = ed.video;
+  /* o vídeo do topo é o cartão de visita: toca sempre que o topo estiver na tela */
+  let heroNaTela = true;
+  const deveTocar = () => heroNaTela && !document.hidden && !$("#topo").hidden && !$("#player").open;
+  if (ed.video) {
+    if (window.zalenVideo) zalenVideo.aplicar(video, ed.video, { adaptar: true, deveTocar });
+    else video.src = ed.video;
+  }
   $("#heroPlay").addEventListener("click", () => abrirPlayer(estado.edicoes.indexOf(ed), video.currentTime));
 
   video.addEventListener("loadedmetadata", () => {
     $("#hudInfo").textContent = `${video.videoWidth}×${video.videoHeight}  ${timecode(video.duration)}`;
   });
   video.addEventListener("timeupdate", () => { $("#hudTc").textContent = timecode(video.currentTime); });
-  if (!reduzMovimento) video.play().catch(() => {});
+  video.muted = true;
+  video.play().catch(() => {});
 
   // pausa quando sai da tela ou quando a aba fica oculta
   pausarComAba(video);
   new IntersectionObserver(([en]) => {
-    if (reduzMovimento) return;
-    en.isIntersecting ? video.play().catch(() => {}) : video.pause();
+    heroNaTela = en.isIntersecting;
+    heroNaTela ? video.play().catch(() => {}) : video.pause();
   }).observe($(".zoom-stage"));
 
   return new Promise((ok) => {
@@ -654,7 +661,7 @@ function renderPaineis() {
       <div class="panel-inner">
         <span class="panel-num" aria-hidden="true">${pad(i + 1)}</span>
         <div class="panel-media" data-cursor="Play">
-          ${ed.youtubeId ? "" : `<video src="${esc(ed.video)}" muted playsinline preload="metadata"></video>`}
+          ${ed.youtubeId ? "" : `<video muted playsinline preload="metadata">${window.zalenVideo ? `<source src="${esc(zalenVideo.arquivo(ed.video, 480))}" type="video/mp4">` : ""}<source src="${esc(ed.video)}" type="video/mp4"></video>`}
           ${capaHTML(ed, "panel-poster", "this.remove()")}
           <span class="panel-dur" hidden><i></i><b></b></span>
           <div class="panel-timeline" aria-hidden="true">
@@ -951,7 +958,8 @@ function prepararContato() {
   if (fundo) $("#contactBg").style.backgroundImage = `url('${fundo.capa}')`;
   const videoFundo = $("#contactBgVideo");
   if (videoFundo && fundo && fundo.video && !reduzMovimento && !window.ZALEN_LITE) {
-    videoFundo.src = fundo.video;
+    if (window.zalenVideo) zalenVideo.aplicar(videoFundo, fundo.video, { nivel: 480 });
+    else videoFundo.src = fundo.video;
     videoFundo.muted = true;
     videoFundo.loop = true;
     videoFundo.playsInline = true;

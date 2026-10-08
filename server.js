@@ -32,6 +32,7 @@ const BLOQUEADOS = [
   /(^|\/)node_modules(\/|$)/,
   /(^|\/)package(-lock)?\.json$/,
   /^\/server\.js$/,
+  /^\/ferramentas(\/|$)/,
   /^\/render\.ya?ml$/,
   /\.md$/,
   /(^|\/)importacao-youtube\.json$/,

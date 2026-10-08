@@ -6,7 +6,8 @@
   "type": "commonjs",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "videos": "node ferramentas/gerar-versoes.js"
   },
   "engines": {
     "node": ">=18"

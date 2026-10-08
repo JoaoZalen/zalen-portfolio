@@ -11,7 +11,7 @@
   <link rel="preload" href="assets/fonts/anton.woff2" as="font" type="font/woff2" crossorigin>
   <script>
     /* Versão única dos arquivos do site: mude só aqui para forçar o navegador a baixar de novo. */
-    window.ZALEN_VERSION = "20261008-liso";
+    window.ZALEN_VERSION = "20261008-videos";
     /* Modo leve: celular, tablet ou PC fraco recebem as mesmas telas, sem os efeitos mais caros. */
     (function () {
       var n = navigator, c = n.connection || {};
@@ -20,7 +20,7 @@
       window.ZALEN_LITE = !!leve;
       if (leve) document.documentElement.classList.add("is-lite");
     })();
-    window.ZALEN_SCRIPTS = ["background.js", "catalog.js", "script.js", "previews.js", "transitions.js", "motion.js"];
+    window.ZALEN_SCRIPTS = ["videos.js", "background.js", "catalog.js", "script.js", "previews.js", "transitions.js", "motion.js"];
     /* Promessa única: resolve com os dados quando os info.js forem lidos. */
     window.zalenReady = new Promise(function (ok) { window.__zalenResolveReady = ok; });
     document.write('<link rel="stylesheet" href="style.css?v=' + window.ZALEN_VERSION + '">');
@@ -88,7 +88,7 @@
     <!-- HERO: vídeo dentro das letras, zoom no scroll -->
     <section class="zoom" id="topo" data-screen="topo">
       <div class="zoom-stage">
-        <video class="zoom-video" id="heroVideo" muted playsinline loop preload="auto"></video>
+        <video class="zoom-video" id="heroVideo" muted autoplay playsinline loop preload="auto"></video>
         <div class="zoom-mask" id="zoomMask"><span class="zoom-word" id="zoomWord">ZALEN</span></div>
 
         <div class="hud" aria-hidden="true">
@@ -218,7 +218,7 @@
     <!-- ======================= TELA: CONTATO ======================= -->
     <section class="contact" id="contato" data-screen="contato">
       <div class="contact-bg" id="contactBg">
-        <video id="contactBgVideo" src="clientes/7mz/edicoes/capitao-patria/video.mp4" muted playsinline loop preload="metadata" tabindex="-1" aria-hidden="true"></video>
+        <video id="contactBgVideo" muted playsinline loop preload="metadata" tabindex="-1" aria-hidden="true"></video>
       </div>
       <div class="contact-balls" aria-hidden="true">
         <i style="--l:0.4%;--s:45px;--t:16.0s;--d:-3.9s;--x:-7px;--c:var(--black)"></i>

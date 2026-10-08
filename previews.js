@@ -14,7 +14,8 @@ function zalenPreviews() {
   function criarVideo(ed) {
     const video = document.createElement("video");
     video.className = "hover-preview hover-preview--video";
-    video.src = ed.video;
+    if (window.zalenVideo) zalenVideo.aplicar(video, ed.video, { nivel: 480 });
+    else video.src = ed.video;
     video.poster = ed.capa;
     video.muted = true;
     video.loop = true;

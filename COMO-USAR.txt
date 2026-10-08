@@ -116,3 +116,15 @@ Os textos da tela inicial ficam no perfil.js:
 Os números (edições, comissões, reedits, projetos) são contados sozinhos a
 partir das pastas, então sobem quando você cadastra trabalhos novos.
 Os destaques são a edição com destaque: true + a primeira de cada coleção.
+
+----------------------------------------------
+VÍDEOS LEVES (para o site rodar liso em PC fraco e celular)
+----------------------------------------------
+Toda vez que colocar um video.mp4 novo, rode na pasta do site:
+
+    npm run videos
+
+Isso cria video-720.mp4, video-480.mp4 e video-360.mp4 ao lado dele
+(precisa do ffmpeg: no Windows, "winget install ffmpeg").
+O site escolhe sozinho a qualidade de cada aparelho e baixa a qualidade
+se o vídeo engasgar. Se esquecer de rodar, o site usa o video.mp4 mesmo.

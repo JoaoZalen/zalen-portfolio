@@ -25,7 +25,11 @@ function iniciarFundo(edicoes) {
   function trecho(duracao) { return Math.floor(Math.random() * Math.max(0, duracao - 9)); }
   function trocar() {
     const e = locais[Math.floor(Math.random() * locais.length)];
-    if (local.getAttribute("src") !== e.video) local.src = e.video;
+    if (local.dataset.base !== e.video) {
+      local.dataset.base = e.video;
+      if (window.zalenVideo) zalenVideo.aplicar(local, e.video, { nivel: 360 });
+      else local.src = e.video;
+    }
     const tocar = () => {
       if (Number.isFinite(local.duration)) local.currentTime = trecho(local.duration);
       if (podeRodar()) local.play().catch(() => {});
