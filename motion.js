@@ -7,7 +7,7 @@
    [data-scroll-top] volta ao topo da tela atual
    Barra de progresso da rolagem embaixo do menu.
    ========================================================= */
-(function () {
+function zalenMotion() {
   const reduz = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const hoverFino = matchMedia("(hover: hover) and (pointer: fine)").matches;
   if (!reduz) document.documentElement.classList.add("js-motion");
@@ -89,4 +89,5 @@
 
   scan();
   atualizar();
-})();
+}
+try { zalenMotion(); } catch (erro) { console.warn("[zalen] motion:", erro); }

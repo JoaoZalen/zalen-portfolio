@@ -7,7 +7,7 @@
    3. A tela troca por baixo e persianas pretas e vermelhas saem em
       direções alternadas, revelando a nova tela.
    ========================================================= */
-(function () {
+function zalenTransicoes() {
   const wipe = document.getElementById("wipe");
   if (!wipe || !wipe.animate) return;
   const palavra = document.getElementById("wipeDest");
@@ -206,4 +206,5 @@
     e.preventDefault();
     transicaoPara(hash, { clientX: e.clientX, clientY: e.clientY, detail: e.detail, target: a });
   });
-})();
+}
+try { zalenTransicoes(); } catch (erro) { console.warn("[zalen] transições:", erro); }
