@@ -1,98 +1,60 @@
-/* Fundo decorativo. Um player externo por vez; fallback MP4 local. */
+/* Fundo decorativo. Vídeo MP4 local desenhado num canvas minúsculo e esticado
+   na tela: o próprio esticamento deixa a imagem desfocada, sem filter: blur()
+   (que travava o site redesenhando a tela inteira a cada quadro). */
 function iniciarFundo(edicoes) {
   const box = document.getElementById("motionBg");
   const local = document.getElementById("motionFallback");
   const modal = document.getElementById("player");
   if (!box || !local || !modal) return;
   if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const locais = edicoes.filter(e => !e.youtubeId && e.video);
+  if (!locais.length) return;
+
+  const cv = document.createElement("canvas");
+  cv.className = "motion-canvas";
+  cv.width = 64; cv.height = 36;
+  cv.setAttribute("aria-hidden", "true");
+  box.insertBefore(cv, box.firstChild);
+  const g = cv.getContext("2d", { alpha: false });
+
   local.muted = true;
   local.loop = true;
   local.playsInline = true;
-  const locais = edicoes.filter(e => !e.youtubeId && e.video);
-  const externos = /^https?:$/.test(location.protocol) ? edicoes.filter(e => e.youtubeId && e.tipo !== "Ao vivo") : [];
-  let yt, atual = null, ultimoId = "", proximaTroca = 0, falhas = 0, buscarTrecho = false;
-  const podeRodar = () => !document.hidden && !modal.open;
-  function trecho(duracao) {
-    const max = Math.max(0, duracao - 9);
-    return Math.floor(Math.random() * max);
-  }
-  function trocarLocal() {
-    if (!locais.length) return;
+  const podeRodar = () => !document.hidden && !modal.open && !document.body.classList.contains("is-catalog");
+
+  function trecho(duracao) { return Math.floor(Math.random() * Math.max(0, duracao - 9)); }
+  function trocar() {
     const e = locais[Math.floor(Math.random() * locais.length)];
     if (local.getAttribute("src") !== e.video) local.src = e.video;
     const tocar = () => {
       if (Number.isFinite(local.duration)) local.currentTime = trecho(local.duration);
-      local.muted = true;
       if (podeRodar()) local.play().catch(() => {});
     };
     if (local.readyState >= 1) tocar();
     else local.addEventListener("loadedmetadata", tocar, { once: true });
   }
-  function trocarYoutube() {
-    if (!yt || !externos.length || !podeRodar() || falhas >= externos.length) return;
-    box.classList.remove("is-youtube");
-    const opcoes = externos.filter(e => e.youtubeId !== ultimoId);
-    atual = (opcoes.length ? opcoes : externos)[Math.floor(Math.random() * (opcoes.length || externos.length))];
-    ultimoId = atual.youtubeId;
-    buscarTrecho = true;
-    proximaTroca = performance.now() + 12000;
-    yt.mute();
-    yt.loadVideoById({ videoId:atual.youtubeId, startSeconds:Math.floor(Math.random()*8), suggestedQuality:"small" });
+
+  /* ~12 quadros por segundo bastam para um fundo desfocado */
+  let ultimo = 0, id = 0;
+  function desenhar(t) {
+    id = 0;
+    if (!podeRodar()) return;
+    if (t - ultimo > 80 && local.readyState >= 2) {
+      ultimo = t;
+      try { g.drawImage(local, 0, 0, cv.width, cv.height); box.classList.add("is-ready"); } catch (_) {}
+    }
+    id = requestAnimationFrame(desenhar);
   }
   function sincronizar() {
-    try {
-      if (!podeRodar()) { local.pause(); if (yt && yt.pauseVideo) yt.pauseVideo(); }
-      else if (yt && box.classList.contains("is-youtube")) { yt.mute(); yt.playVideo(); }
-      else local.play().catch(() => {});
-    } catch (erro) { console.warn("[zalen] fundo:", erro); }
+    if (!podeRodar()) { local.pause(); if (id) { cancelAnimationFrame(id); id = 0; } return; }
+    local.play().catch(() => {});
+    if (!id) id = requestAnimationFrame(desenhar);
   }
-  trocarLocal();
+
+  trocar();
+  sincronizar();
   document.addEventListener("visibilitychange", sincronizar);
-  new MutationObserver(sincronizar).observe(modal, {attributes:true, attributeFilter:["open"]});
-  setInterval(() => {
-    if (!podeRodar()) return;
-    try {
-      if (yt && externos.length && falhas < externos.length) {
-        if (performance.now() >= proximaTroca) trocarYoutube();
-      } else trocarLocal();
-    } catch (erro) { console.warn("[zalen] fundo:", erro); falhas = externos.length; trocarLocal(); }
-  }, 9000);
-  function montar() {
-    if (yt || !window.YT || !YT.Player) return;
-    try { criarPlayer(); } catch (erro) { console.warn("[zalen] fundo do YouTube falhou:", erro); yt = null; falhas = externos.length; }
-  }
-  function criarPlayer() {
-    yt = new YT.Player("motionYoutube", {
-      width:"100%", height:"100%",
-      playerVars:{autoplay:1, mute:1, playsinline:1, controls:0, disablekb:1, origin:location.origin === "null" ? undefined : location.origin},
-      events:{
-        onReady:trocarYoutube,
-        onStateChange:event => {
-          if (event.data === YT.PlayerState.PLAYING) {
-            yt.mute();
-            if (!podeRodar()) { yt.pauseVideo(); return; }
-            const duracao = yt.getDuration();
-            if (buscarTrecho && duracao > 0) {
-              buscarTrecho = false;
-              yt.seekTo(trecho(duracao), true);
-            }
-            box.classList.add("is-youtube"); local.pause();
-          } else if (event.data === YT.PlayerState.ENDED) trocarYoutube();
-        },
-        onError:() => { falhas++; box.classList.remove("is-youtube"); trocarLocal(); proximaTroca=0; }
-      }
-    });
-    // O API substitui o div pelo iframe: restaura a classe de posicionamento.
-    const frame = document.getElementById("motionYoutube");
-    if (frame) frame.classList.add("motion-youtube");
-  }
-  if (externos.length && window.carregarYoutubeAPI) {
-    // carga única da API (script.js): se for bloqueada, o fundo fica só com MP4 local
-    window.carregarYoutubeAPI().then(montar, () => { falhas = externos.length; });
-  } else if (externos.length) {
-    const antes = window.onYouTubeIframeAPIReady;
-    window.onYouTubeIframeAPIReady = () => { if (antes) antes(); montar(); };
-    if (window.YT && YT.Player) montar();
-    else { const s=document.createElement("script"); s.src="https://www.youtube.com/iframe_api"; s.onerror=()=>{falhas=externos.length;}; document.head.appendChild(s); }
-  }
+  addEventListener("telachange", sincronizar);
+  new MutationObserver(sincronizar).observe(modal, { attributes: true, attributeFilter: ["open"] });
+  setInterval(() => { if (podeRodar()) trocar(); }, 9000);
 }
