@@ -552,7 +552,7 @@ function prepararHero() {
   let heroNaTela = true;
   const deveTocar = () => heroNaTela && !document.hidden && !$("#topo").hidden && !$("#player").open;
   if (ed.video) {
-    if (window.zalenVideo) zalenVideo.aplicar(video, ed.video, { adaptar: true, deveTocar });
+    if (window.zalenVideo) zalenVideo.aplicar(video, ed.video, { adaptar: true, deveTocar, minimo: 720 }); // topo: só 1080p ou 720p
     else video.src = ed.video;
   }
   $("#heroPlay").addEventListener("click", () => abrirPlayer(estado.edicoes.indexOf(ed), video.currentTime));
@@ -616,6 +616,63 @@ function calcularOrigem() {
   const oy = r.top - m.top + melhor.y / esc_;
   mask.style.setProperty("--ox", `${ox}px`);
   mask.style.setProperty("--oy", `${oy}px`);
+
+  // geometria das letras em tamanho real para a máscara em canvas
+  const gr = document.createElement("canvas").getContext("2d");
+  const fonte = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+  gr.font = fonte;
+  const mr = gr.measureText(word.textContent);
+  const iw = mr.actualBoundingBoxLeft + mr.actualBoundingBoxRight;
+  const ih = mr.actualBoundingBoxAscent + mr.actualBoundingBoxDescent;
+  prepararMascara({
+    texto: word.textContent, fonte, espaco: cs.letterSpacing,
+    x: r.left - m.left + (r.width - iw) / 2 + mr.actualBoundingBoxLeft,
+    y: r.top - m.top + (r.height - ih) / 2 + mr.actualBoundingBoxAscent,
+    ox, oy, w: m.width, h: m.height
+  });
+}
+
+/* Máscara do ZALEN: um canvas preto com as letras vazadas, por cima do vídeo.
+   Antes era uma camada com mix-blend-mode ampliada até 70x, que obrigava o
+   navegador a misturar a tela inteira com o vídeo a cada quadro (o "lag do ZALEN").
+   Agora é só uma imagem com furos: barato e sempre nítido, redesenhado só na rolagem. */
+const mascara = { cv: null, g: null, geo: null, escala: -1, dpr: 1, fontes: false };
+function prepararMascara(geo) {
+  const mask = $("#zoomMask");
+  if (!mascara.cv) {
+    mascara.cv = document.createElement("canvas");
+    mascara.cv.className = "zoom-canvas";
+    mascara.cv.setAttribute("aria-hidden", "true");
+    mask.appendChild(mascara.cv);
+    mascara.g = mascara.cv.getContext("2d", { alpha: true });
+  }
+  mascara.dpr = Math.min(window.devicePixelRatio || 1, window.ZALEN_LITE ? 1 : 1.5);
+  mascara.cv.width = Math.max(1, Math.round(geo.w * mascara.dpr));
+  mascara.cv.height = Math.max(1, Math.round(geo.h * mascara.dpr));
+  mascara.geo = geo;
+  mascara.escala = -1;
+  mask.classList.add("is-canvas");
+  if (!mascara.fontes && document.fonts) {
+    mascara.fontes = true;
+    document.fonts.ready.then(() => { try { calcularOrigem(); atualizarHero(); } catch (_) {} });
+  }
+  try { atualizarHero(); } catch (_) {}
+}
+function desenharMascara(s) {
+  const { cv, g, geo, dpr } = mascara;
+  if (!cv || !geo || Math.abs(s - mascara.escala) < .0005) return;
+  mascara.escala = s;
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.globalCompositeOperation = "source-over";
+  g.fillStyle = "#000";
+  g.fillRect(0, 0, cv.width, cv.height);
+  g.globalCompositeOperation = "destination-out";
+  // amplia a partir do ponto dentro da letra: p → o + s·(p − o)
+  g.setTransform(dpr * s, 0, 0, dpr * s, dpr * geo.ox * (1 - s), dpr * geo.oy * (1 - s));
+  g.font = geo.fonte;
+  if ("letterSpacing" in g && geo.espaco && geo.espaco !== "normal") g.letterSpacing = geo.espaco;
+  g.fillText(geo.texto, geo.x, geo.y);
+  g.globalCompositeOperation = "source-over";
 }
 
 function atualizarHero() {
@@ -627,8 +684,10 @@ function atualizarHero() {
 
   // 0 → .62: atravessa a letra | .55 → .7: máscara some | .72 → .9: textos entram
   const z = easeInOut(clamp(p / .62));
-  mask.style.setProperty("--ms", Math.pow(70, z).toFixed(3));
-  mask.style.opacity = 1 - clamp((p - .55) / .15);
+  const escala = Math.pow(70, z), opacidade = 1 - clamp((p - .55) / .15);
+  if (mascara.cv) { if (opacidade > 0) desenharMascara(escala); }
+  else mask.style.setProperty("--ms", escala.toFixed(3));
+  mask.style.opacity = opacidade;
   $("#heroVideo").style.setProperty("--vs", (1.15 - z * .15).toFixed(3));
   const oo = clamp((p - .72) / .18);
   over.style.setProperty("--oo", oo.toFixed(3));

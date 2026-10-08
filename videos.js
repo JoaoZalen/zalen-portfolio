@@ -57,11 +57,12 @@
     video.setAttribute("muted", ""); video.setAttribute("playsinline", "");
   }
 
-  /* aplica num <video>. opcoes: { nivel, adaptar, deveTocar() } */
+  /* aplica num <video>. opcoes: { nivel (máximo), minimo, adaptar, deveTocar() } */
   function aplicar(video, base, opcoes) {
     opcoes = opcoes || {};
     mudo(video);
     var nivel = opcoes.nivel ? Math.min(opcoes.nivel, atual) : atual;
+    if (opcoes.minimo) { nivel = Math.max(nivel, opcoes.minimo); video.dataset.minimo = opcoes.minimo; }
     video.dataset.nivel = nivel;
     trocarFontes(video, base, nivel);
     if (opcoes.deveTocar) manterTocando(video, opcoes.deveTocar);
@@ -71,7 +72,7 @@
   function descer(video, base, deveTocar) {
     var nivel = +video.dataset.nivel || atual;
     var prox = NIVEIS[NIVEIS.indexOf(nivel) + 1];
-    if (!prox) return false;
+    if (!prox || prox < (+video.dataset.minimo || 0)) return false;
     atual = Math.min(atual, prox);
     salvar(atual);
     var t = video.currentTime, tocava = !video.paused || deveTocar();

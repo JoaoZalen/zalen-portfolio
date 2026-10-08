@@ -20,7 +20,13 @@ function iniciarFundo(edicoes) {
   local.muted = true;
   local.loop = true;
   local.playsInline = true;
-  const podeRodar = () => !document.hidden && !modal.open && !document.body.classList.contains("is-catalog");
+  /* enquanto o topo cobre a tela o fundo nem aparece: não gasta decodificando vídeo */
+  let topoCobre = false;
+  const palco = document.querySelector(".zoom-stage");
+  if (palco && "IntersectionObserver" in window) {
+    new IntersectionObserver(([en]) => { topoCobre = en.intersectionRatio >= .9; sincronizar(); }, { threshold: [0, .9] }).observe(palco);
+  }
+  const podeRodar = () => !document.hidden && !modal.open && !topoCobre && !document.body.classList.contains("is-catalog");
 
   function trecho(duracao) { return Math.floor(Math.random() * Math.max(0, duracao - 9)); }
   function trocar() {

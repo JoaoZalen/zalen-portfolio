@@ -1426,7 +1426,21 @@ body[data-tela="topo"]:not(.is-scrolled) .nav::after { opacity: 0; }
 .service-card { backdrop-filter: none; -webkit-backdrop-filter: none; background: rgba(20, 20, 22, .94); }
 .contact-links .ci { backdrop-filter: none; -webkit-backdrop-filter: none; }
 .contact-bg video { filter: grayscale(1) contrast(1.6); }
-.zoom-mask { will-change: transform, opacity; }
+/* ZALEN do topo: máscara em canvas (script.js), sem mix-blend-mode */
+.zoom-mask.is-canvas { background: transparent; mix-blend-mode: normal; transform: none; will-change: opacity; }
+.zoom-mask.is-canvas .zoom-word { visibility: hidden; }
+.zoom-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+/* painéis de trabalhos: escurecer com uma película em vez de filter: brightness() */
+.panel-inner { filter: none; will-change: auto; }
+@media (min-width: 961px) {
+  .panel-inner { will-change: transform; }
+  .panel-inner::after {
+    content: ""; position: absolute; inset: 0; z-index: 5; pointer-events: none;
+    background: #000; opacity: calc(1 - var(--pb, 1));
+  }
+}
+/* grão parado: a textura continua, sem animar a tela inteira */
+.grain { animation: none; }
 .js-motion [data-reveal] { filter: none; }
 
 /* modo leve (celular, tablet, PC fraco): corta o resto do que é decorativo */
@@ -1434,6 +1448,5 @@ body[data-tela="topo"]:not(.is-scrolled) .nav::after { opacity: 0; }
 .is-lite .contact-bg video { display: none; }
 .is-lite .contact-links .ci { animation: none; }
 .is-lite .contact-balls i:nth-child(n + 7) { display: none; }
-.is-lite .panel-inner { filter: none; will-change: transform; }
 .is-lite .glitch:hover::before, .is-lite .glitch:hover::after,
 .is-lite .glitch.is-glitch::before, .is-lite .glitch.is-glitch::after { animation: none; opacity: 0; }
