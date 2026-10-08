@@ -1,5 +1,5 @@
 /* Previews silenciosos para hover/focus em cards, tabela e painéis. */
-(function () {
+function zalenPreviews() {
   // Só toca quando a pessoa passa o mouse, então vale mesmo com "reduzir movimento" ligado.
   const podeTocar = () => /^https?:$/.test(location.protocol);
   const hoverFino = matchMedia("(hover: hover) and (pointer: fine)").matches;
@@ -57,16 +57,34 @@
   }
 
   function iniciar(alvo) {
+    try { comecar(alvo); } catch (erro) { console.warn("[zalen] preview:", erro); }
+  }
+
+  function comecar(alvo) {
     if (!hoverFino || !podeTocar() || !window.estado) return;
     const item = edicaoDoAlvo(alvo);
     if (!item || !item.host || !Number.isFinite(item.indice)) return;
     const ed = window.estado.edicoes[item.indice];
     if (!ed || ativo && ativo.host === item.host) return;
     parar();
-    const media = ed.youtubeId ? criarYoutube(ed) : criarVideo(ed);
-    item.host.appendChild(media);
-    item.host.classList.add("has-hover-preview");
-    ativo = { host: item.host, media };
+    const bloqueado = ed.youtubeId && window.zalenYoutube && window.zalenYoutube.bloqueado;
+    if (bloqueado) {
+      // YouTube bloqueado: usa o video.mp4 da pasta, se existir; senão fica a capa
+      if (!window.videoLocal) return;
+      const host = item.host;
+      window.videoLocal(ed).then((src) => {
+        if (!src || ativo || !host.isConnected || !host.matches(":hover, :focus-within")) return;
+        mostrar(host, criarVideo({ video: src, capa: ed.capa }));
+      });
+      return;
+    }
+    mostrar(item.host, ed.youtubeId ? criarYoutube(ed) : criarVideo(ed));
+  }
+
+  function mostrar(host, media) {
+    host.appendChild(media);
+    host.classList.add("has-hover-preview");
+    ativo = { host, media };
     if (media.play) media.play().catch(() => {});
   }
 
@@ -78,4 +96,5 @@
   document.addEventListener("focusout", parar);
   document.addEventListener("click", parar, true);
   document.addEventListener("visibilitychange", () => { if (document.hidden) parar(); });
-})();
+}
+try { zalenPreviews(); } catch (erro) { console.warn("[zalen] previews:", erro); }

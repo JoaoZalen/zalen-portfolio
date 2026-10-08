@@ -40,21 +40,28 @@ function iniciarFundo(edicoes) {
     yt.loadVideoById({ videoId:atual.youtubeId, startSeconds:Math.floor(Math.random()*8), suggestedQuality:"small" });
   }
   function sincronizar() {
-    if (!podeRodar()) { local.pause(); if (yt && yt.pauseVideo) yt.pauseVideo(); }
-    else if (box.classList.contains("is-youtube")) { yt.mute(); yt.playVideo(); }
-    else local.play().catch(() => {});
+    try {
+      if (!podeRodar()) { local.pause(); if (yt && yt.pauseVideo) yt.pauseVideo(); }
+      else if (yt && box.classList.contains("is-youtube")) { yt.mute(); yt.playVideo(); }
+      else local.play().catch(() => {});
+    } catch (erro) { console.warn("[zalen] fundo:", erro); }
   }
   trocarLocal();
   document.addEventListener("visibilitychange", sincronizar);
   new MutationObserver(sincronizar).observe(modal, {attributes:true, attributeFilter:["open"]});
   setInterval(() => {
     if (!podeRodar()) return;
-    if (yt && externos.length && falhas < externos.length) {
-      if (performance.now() >= proximaTroca) trocarYoutube();
-    } else trocarLocal();
+    try {
+      if (yt && externos.length && falhas < externos.length) {
+        if (performance.now() >= proximaTroca) trocarYoutube();
+      } else trocarLocal();
+    } catch (erro) { console.warn("[zalen] fundo:", erro); falhas = externos.length; trocarLocal(); }
   }, 9000);
   function montar() {
     if (yt || !window.YT || !YT.Player) return;
+    try { criarPlayer(); } catch (erro) { console.warn("[zalen] fundo do YouTube falhou:", erro); yt = null; falhas = externos.length; }
+  }
+  function criarPlayer() {
     yt = new YT.Player("motionYoutube", {
       width:"100%", height:"100%",
       playerVars:{autoplay:1, mute:1, playsinline:1, controls:0, disablekb:1, origin:location.origin === "null" ? undefined : location.origin},
@@ -79,7 +86,10 @@ function iniciarFundo(edicoes) {
     const frame = document.getElementById("motionYoutube");
     if (frame) frame.classList.add("motion-youtube");
   }
-  if (externos.length) {
+  if (externos.length && window.carregarYoutubeAPI) {
+    // carga única da API (script.js): se for bloqueada, o fundo fica só com MP4 local
+    window.carregarYoutubeAPI().then(montar, () => { falhas = externos.length; });
+  } else if (externos.length) {
     const antes = window.onYouTubeIframeAPIReady;
     window.onYouTubeIframeAPIReady = () => { if (antes) antes(); montar(); };
     if (window.YT && YT.Player) montar();
