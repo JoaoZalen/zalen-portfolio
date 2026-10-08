@@ -10,6 +10,18 @@ const app = express();
 app.disable("x-powered-by");
 app.set("trust proxy", true);
 
+// Logging de performance para requisições lentas
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    if (duration > 500) {
+      console.log(`[SLOW] ${req.method} ${req.url} - ${duration}ms`);
+    }
+  });
+  next();
+});
+
 app.get("/healthz", (req, res) => {
   res.set("Cache-Control", "no-store").type("text/plain").send("ok");
 });
@@ -33,25 +45,30 @@ app.use((req, res, next) => {
   next();
 });
 
-/* Só texto é comprimido; vídeo e imagem já vêm comprimidos (e precisam de Range). */
+/* Compressão: texto com gzip/brotli; vídeo e imagem já vêm comprimidos (e precisam de Range). */
 const COMPRIMIR = /^(text\/html|text\/css|text\/javascript|application\/javascript|application\/json)/i;
 app.use(compression({
+  level: 6, // Balanço entre velocidade e compressão
+  threshold: 1024, // Só comprimir se > 1KB
   filter: (req, res) => COMPRIMIR.test(String(res.getHeader("Content-Type") || ""))
 }));
 
 /* Cache por tipo de arquivo. Os info.js e perfil.js são editados à mão,
    então sempre revalidam (ETag) para a mudança aparecer no próximo F5. */
 const SETE_DIAS = 7 * 24 * 60 * 60;
+const TRINTA_DIAS = 30 * 24 * 60 * 60; // Assets com fingerprinting podem ter cache mais longo
 function cabecalhos(res, arquivo) {
   const rel = path.relative(RAIZ, arquivo).split(path.sep).join("/");
   const ext = path.extname(arquivo).toLowerCase();
   let cache = "public, max-age=0, must-revalidate";
   if (ext === ".html") cache = "no-cache";
   else if (rel === "perfil.js" || rel.startsWith("clientes/")) cache = /\.(js|json)$/.test(ext) ? "no-cache" : `public, max-age=${SETE_DIAS}`;
-  else if (ext === ".css" || ext === ".js") cache = "public, max-age=3600";
-  else if ([".mp4", ".webm", ".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg", ".woff2", ".woff"].includes(ext)) cache = `public, max-age=${SETE_DIAS}`;
+  else if (ext === ".css" || ext === ".js") cache = `public, max-age=${TRINTA_DIAS}, immutable`; // 30 dias para assets
+  else if ([".mp4", ".webm", ".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg", ".woff2", ".woff"].includes(ext)) cache = `public, max-age=${TRINTA_DIAS}, immutable`;
   res.setHeader("Cache-Control", cache);
   res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "SAMEORIGIN");
+  res.setHeader("Vary", "Accept-Encoding");
 }
 
 app.use(express.static(RAIZ, {
